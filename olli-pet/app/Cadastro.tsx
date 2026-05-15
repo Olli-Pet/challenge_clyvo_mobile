@@ -16,6 +16,10 @@ import { router } from "expo-router";
 
 import OndaTop from "@/components/Onda";
 import OndaBottom from "@/components/OndaBottom";
+import { Alert, ActivityIndicator } from "react-native";
+import { auth, db } from "@/config/firebase"; // Importe o auth e db
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 
 const PRIMARY_YELLOW = "#FDCB5C";
 
@@ -25,6 +29,54 @@ export default function Cadastro() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleCadastro = async () => {
+    // 1. Validações básicas
+    if (!nome || !cpf || !email || !senha) {
+      Alert.alert("Erro", "Preencha todos os campos, diva!");
+      return;
+    }
+    if (senha !== confirmarSenha) {
+      Alert.alert("Erro", "As senhas não conferem!");
+      return;
+    }
+    if (senha.length < 6) {
+      Alert.alert("Erro", "A senha precisa de pelo menos 6 caracteres.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // 2. Criar usuário no Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+      const user = userCredential.user;
+
+      // 3. Salvar dados extras no Firestore (usando o UID do usuário como ID do documento)
+      await setDoc(doc(db, "tutores", user.uid), {
+        nome: nome,
+        cpf: cpf,
+        email: email,
+        uid: user.uid,
+        createdAt: new Date(),
+      });
+
+      Alert.alert("Sucesso!", "Conta criada com sucesso!");
+      router.replace("/Home"); // Vai para Home e "apaga" a tela de cadastro do histórico
+
+    } catch (error: any) {
+      console.error(error);
+      let mensagemErro = "Ocorreu um erro ao cadastrar.";
+      
+      if (error.code === 'auth/email-already-in-use') mensagemErro = "Este e-mail já está em uso!";
+      if (error.code === 'auth/invalid-email') mensagemErro = "E-mail inválido!";
+      
+      Alert.alert("Ops!", mensagemErro);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -102,14 +154,19 @@ export default function Cadastro() {
               />
             </View>
 
-            {/* BOTÃO CADASTRAR */}
-            <TouchableOpacity 
-              style={styles.button} 
-              activeOpacity={0.8}
-              onPress={() => console.log("Cadastro realizado")}
-            >
-              <Text style={styles.buttonText}>Cadastrar</Text>
-            </TouchableOpacity>
+{/* BOTÃO CADASTRAR CORRIGIDO */}
+<TouchableOpacity 
+  style={[styles.button, loading && { opacity: 0.7 }]} 
+  activeOpacity={0.8}
+  onPress={handleCadastro} // <--- MUDE DE console.log PARA handleCadastro
+  disabled={loading}
+>
+  {loading ? (
+    <ActivityIndicator color="#000" />
+  ) : (
+    <Text style={styles.buttonText}>Cadastrar</Text>
+  )}
+</TouchableOpacity>
 
             {/* LINK LOGIN */}
             <TouchableOpacity 

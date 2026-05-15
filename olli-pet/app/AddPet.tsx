@@ -15,6 +15,7 @@ import { router } from "expo-router";
 // Seus componentes reaproveitados
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
+import BotaoIA from "@/components/BotaoIA";
 
 export default function AdicionarPet() {
   const [nome, setNome] = useState("");
@@ -100,7 +101,7 @@ export default function AdicionarPet() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
+      <BotaoIA />
       <Navbar />
     </SafeAreaView>
   );

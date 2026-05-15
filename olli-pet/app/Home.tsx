@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import PetCircle from "@/components/PetCircle";
 import CardEventos from "@/components/CardEventos";
+import BotaoIA from "@/components/BotaoIA";
 
 export default function Home() {
   return (
@@ -82,10 +83,7 @@ export default function Home() {
 
       </ScrollView>
 
-      {/* Botão de Chat Flutuante (Opcional, presente no seu design) */}
-      <TouchableOpacity style={styles.fab}>
-        <Ionicons name="chatbox-ellipses" size={28} color="black" />
-      </TouchableOpacity>
+      <BotaoIA />
 
       <Navbar />
     </SafeAreaView>
@@ -149,22 +147,5 @@ const styles = StyleSheet.create({
   verTudo: {
     fontSize: 16,
     color: "#333",
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 90,
-    backgroundColor: '#FDCB5C',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    zIndex: 10,
   }
 });

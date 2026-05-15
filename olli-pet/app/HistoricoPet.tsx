@@ -6,6 +6,7 @@ import { router } from "expo-router";
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import CardEventos from "@/components/CardEventos";
+import BotaoIA from "@/components/BotaoIA";
 
 export default function HistoricoPet() {
   // Estado para controlar qual pet está selecionado
@@ -76,9 +77,7 @@ export default function HistoricoPet() {
         <TouchableOpacity style={styles.fab}>
           <Ionicons name="document-text-outline" size={24} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.fab}>
-          <Ionicons name="chatbubble-outline" size={24} color="black" />
-        </TouchableOpacity>
+        <BotaoIA />
       </View>
 
       <Navbar />

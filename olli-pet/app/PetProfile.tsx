@@ -5,6 +5,7 @@ import { router } from "expo-router";
 
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
+import BotaoIA from "@/components/BotaoIA";
 
 export default function PetProfile() {
   
@@ -85,10 +86,7 @@ export default function PetProfile() {
 
       </ScrollView>
 
-      {/* Botão flutuante de chat (opcional) */}
-      <TouchableOpacity style={styles.fab}>
-        <Ionicons name="chatbox-ellipses" size={30} color="black" />
-      </TouchableOpacity>
+      <BotaoIA />
 
       <Navbar />
     </SafeAreaView>
@@ -150,7 +148,5 @@ const styles = StyleSheet.create({
   dateCardsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   dateCard: { width: '48%', backgroundColor: '#FDCB5C', padding: 15, borderRadius: 12, elevation: 3, alignItems: 'center' },
   dateCardTitle: { fontSize: 13, fontWeight: '500', textAlign: 'center' },
-  dateCardDetail: { fontSize: 13, fontWeight: 'bold', textAlign: 'center', marginTop: 4 },
-
-  fab: { position: 'absolute', right: 20, bottom: 90, backgroundColor: '#FDCB5C', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 5 }
+  dateCardDetail: { fontSize: 13, fontWeight: 'bold', textAlign: 'center', marginTop: 4 }
 });
