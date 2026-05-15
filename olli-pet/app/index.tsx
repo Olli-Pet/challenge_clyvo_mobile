@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import {View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, ScrollView,} from "react-native";
+import {View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, ScrollView, Image} from "react-native";
 import { router } from "expo-router";
 
 import OndaTop from "@/components/Onda";
@@ -28,9 +28,14 @@ export default function Index() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* LOGO */}
-        <Text style={styles.logo}>Olli</Text>
-        <Text style={styles.logoSub}>PET</Text>
+          {/* ESPAÇO PARA A SUA LOGO EM IMAGEM */}
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require("@/assets/images/Olli Logo.svg")}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          </View>
 
         <Text style={styles.title}>Bem-vindo de volta</Text>
 
@@ -87,6 +92,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 110,
     paddingBottom: 120,
+  },
+
+  logoContainer: {
+    marginBottom: 30,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoImage: {
+    width: 200,   // Ajuste o tamanho conforme a sua imagem
+    height: 120,  // Ajuste o tamanho conforme a sua imagem
   },
 
   logo: {

@@ -23,7 +23,7 @@ export default function PetProfile() {
         <View style={styles.petHeader}>
           <View style={styles.imageContainer}>
             <Image 
-              source={{ uri: 'https://placehold.co/200x200.png' }} // Substitua pela imagem da Nina
+              source={require("@/assets/images/dog.png")} // Substitua pela imagem da Nina
               style={styles.petImage} 
             />
           </View>
@@ -121,8 +121,8 @@ const styles = StyleSheet.create({
   backText: { fontSize: 16, fontWeight: "500" },
   
   petHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  imageContainer: { width: 130, height: 130, borderRadius: 65, backgroundColor: '#FDCB5C', overflow: 'hidden', elevation: 5 },
-  petImage: { width: '100%', height: '100%' },
+  imageContainer: { width: 130, height: 130, borderRadius: 65, backgroundColor: '#FDCB5C', overflow: 'hidden', elevation: 5},
+  petImage: { width: '100%', height: '100%'},
   nameCard: { backgroundColor: '#FDE4A8', padding: 15, borderRadius: 15, flex: 0.9, elevation: 3, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   petNameText: { fontSize: 20, fontWeight: 'bold' },
   petBreedText: { fontSize: 12, color: '#444' },

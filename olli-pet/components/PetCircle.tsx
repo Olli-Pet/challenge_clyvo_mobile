@@ -12,7 +12,7 @@ export default function PetCircle({ name, imageUri, selected, onPress }: PetCirc
   return (
     <TouchableOpacity style={styles.petItem} onPress={onPress} activeOpacity={0.7}>
       <View style={selected ? styles.petCircleSelected : styles.petCircle}>
-        <Image source={{ uri: imageUri || 'https://placehold.co/100x100.png' }} style={styles.petImage} />
+        <Image source={require ("@/assets/images/dog.png")} style={styles.petImage} />
       </View>
       <Text style={styles.petName}>{name}</Text>
     </TouchableOpacity>
