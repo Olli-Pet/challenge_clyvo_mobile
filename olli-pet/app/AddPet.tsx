@@ -8,6 +8,9 @@ import {
   StyleSheet,
   TextInput,
   StatusBar,
+  Alert,
+  ActivityIndicator,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -17,6 +20,10 @@ import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import BotaoIA from "@/components/BotaoIA";
 
+// Importando o serviço do Firestore e a instância do Auth
+import { savePet } from "@/services/petService";
+import { auth } from "@/config/firebase";
+
 export default function AdicionarPet() {
   const [nome, setNome] = useState("");
   const [raca, setRaca] = useState("");
@@ -25,6 +32,62 @@ export default function AdicionarPet() {
   const [porte, setPorte] = useState("");
   const [sexo, setSexo] = useState("");
   const [info, setInfo] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Mapeamento estático dos 3 pets para contornar o upload real
+  const obterImagemPet = (termo: string) => {
+    const busca = termo.toLowerCase();
+    if (busca.includes("cavalo")) {
+      return require("@/assets/images/cavalo.png"); // Substitua pelos caminhos reais da sua pasta
+    }
+    if (busca.includes("ornitorrinco")) {
+      return require("@/assets/images/ornitorrinco.png");
+    }
+    // Padrão ou se for cão/dog
+    return require("@/assets/images/dog.png"); 
+  };
+
+  const handleSalvarPet = async () => {
+    // Validação dos campos obrigatórios
+    if (!nome || !raca || !cor || !porte) {
+      Alert.alert("Ops!", "Preencha pelo menos Nome, Raça, Cor e Porte, diva!");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const usuarioAtual = auth.currentUser;
+
+      // Montando o payload de acordo com a nossa interface única
+      await savePet({
+        nome,
+        raca,
+        sexo: sexo || "Não informado",
+        porte,
+        nascimento,
+        cor,
+        info,
+        uidTutor: usuarioAtual ? usuarioAtual.uid : "anonimo",
+        createdAt: new Date(),
+      });
+
+      Alert.alert("Sucesso!", `${nome} foi adicionado à sua família! 🐾`);
+      router.replace("/Home"); // Retorna atualizando a lista
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert("Erro ao salvar", "Não conseguimos cadastrar o pet agora.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Alternador simples para o campo de sexo simulado
+  const alternarSexo = () => {
+    if (sexo === "Macho") setSexo("Fêmea");
+    else if (sexo === "Fêmea") setSexo("Não informado");
+    else setSexo("Macho");
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -42,12 +105,16 @@ export default function AdicionarPet() {
 
         <Text style={styles.pageTitle}>Adicionar PET</Text>
 
-        {/* SEÇÃO DE IMAGEM */}
+        {/* SEÇÃO DE IMAGEM DINÂMICA */}
         <View style={styles.imageSection}>
-          <TouchableOpacity style={styles.imagePlaceholder}>
-            <Ionicons name="add" size={40} color="black" />
-          </TouchableOpacity>
-          <Text style={styles.imageLabel}>Imagem</Text>
+          <View style={styles.imagePlaceholder}>
+            <Image 
+              source={obterImagemPet(raca || nome)} 
+              style={styles.petAvatar} 
+              resizeMode="cover"
+            />
+          </View>
+          <Text style={styles.imageLabel}>Avatar baseado na Raça</Text>
         </View>
 
         {/* FORMULÁRIO */}
@@ -55,8 +122,13 @@ export default function AdicionarPet() {
           <Text style={styles.label}>Nome completo</Text>
           <TextInput style={styles.input} value={nome} onChangeText={setNome} />
 
-          <Text style={styles.label}>Raça</Text>
-          <TextInput style={styles.input} value={raca} onChangeText={setRaca} />
+          <Text style={styles.label}>Raça (Dog, Cavalo, Ornitorrinco)</Text>
+          <TextInput 
+            style={styles.input} 
+            value={raca} 
+            onChangeText={raca => setRaca(raca)} 
+            placeholder="Ex: Cavalo"
+          />
 
           {/* CAMPOS LADO A LADO */}
           <View style={styles.row}>
@@ -79,10 +151,10 @@ export default function AdicionarPet() {
             <View style={{ width: 15 }} />
             <View style={styles.flex1}>
               <Text style={styles.label}>Sexo</Text>
-              <View style={styles.selectInput}>
+              <TouchableOpacity style={styles.selectInput} onPress={alternarSexo}>
                 <Text>{sexo || "Selecionar"}</Text>
                 <Ionicons name="chevron-down" size={20} color="black" />
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -95,9 +167,17 @@ export default function AdicionarPet() {
             numberOfLines={4} 
           />
 
-          {/* BOTÃO ADICIONAR */}
-          <TouchableOpacity style={styles.addButton}>
-            <Text style={styles.addButtonText}>Adicionar</Text>
+          {/* BOTÃO ADICIONAR COM LOADING */}
+          <TouchableOpacity 
+            style={[styles.addButton, loading && { opacity: 0.7 }]} 
+            onPress={handleSalvarPet}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text style={styles.addButtonText}>Adicionar</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -122,11 +202,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#FDCB5C",
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden", // Para a imagem herdar o arredondado da borda
     elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    boxShadow: "0px 2px 3px rgba(0,0,0,0.2)",
+  },
+  petAvatar: {
+    width: "100%",
+    height: "100%",
   },
   imageLabel: { marginTop: 8, fontSize: 14, color: "#333" },
 
@@ -142,10 +224,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     backgroundColor: "#FFF",
     elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    boxShadow: "0px 1px 2px rgba(0,0,0,0.1)",
   },
   textArea: { height: 100, textAlignVertical: "top", paddingTop: 10 },
   row: { flexDirection: "row", marginBottom: 5 },
@@ -172,9 +251,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
     elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    boxShadow: "0px 2px 2px rgba(0,0,0,0.2)",
   },
   addButtonText: { fontWeight: "bold", fontSize: 16 }
 });

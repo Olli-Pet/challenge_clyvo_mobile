@@ -65,14 +65,12 @@ export default function Cadastro() {
       Alert.alert("Sucesso!", "Conta criada com sucesso!");
       router.replace("/Home"); // Vai para Home e "apaga" a tela de cadastro do histórico
 
-    } catch (error: any) {
+  } catch (error: any) {
       console.error(error);
-      let mensagemErro = "Ocorreu um erro ao cadastrar.";
       
-      if (error.code === 'auth/email-already-in-use') mensagemErro = "Este e-mail já está em uso!";
-      if (error.code === 'auth/invalid-email') mensagemErro = "E-mail inválido!";
+      // ISSO VAI MOSTRAR O ERRO REAL EM UM ALERTA NA TELA
+      Alert.alert("Erro no Firebase", `${error.code} \n\n ${error.message}`);
       
-      Alert.alert("Ops!", mensagemErro);
     } finally {
       setLoading(false);
     }
