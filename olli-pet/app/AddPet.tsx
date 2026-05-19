@@ -73,7 +73,7 @@ export default function AdicionarPet() {
       });
 
       Alert.alert("Sucesso!", `${nome} foi adicionado à sua família! 🐾`);
-      router.replace("/Home"); // Retorna atualizando a lista
+      router.replace("/home"); // Retorna atualizando a lista
     } catch (error: any) {
       console.error(error);
       Alert.alert("Erro ao salvar", "Não conseguimos cadastrar o pet agora.");

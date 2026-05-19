@@ -63,7 +63,7 @@ export default function Cadastro() {
       });
 
       Alert.alert("Sucesso!", "Conta criada com sucesso!");
-      router.replace("/Home"); // Vai para Home e "apaga" a tela de cadastro do histórico
+      router.replace("/home"); // Vai para Home e "apaga" a tela de cadastro do histórico
 
   } catch (error: any) {
       console.error(error);
@@ -169,7 +169,7 @@ export default function Cadastro() {
             {/* LINK LOGIN */}
             <TouchableOpacity 
               style={styles.loginLink} 
-              onPress={() => router.push("/Index")}
+              onPress={() => router.push("/")}
             >
               <Text style={styles.loginLinkText}>Já possuo uma conta</Text>
             </TouchableOpacity>

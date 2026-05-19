@@ -31,7 +31,7 @@ export default function Home() {
           <PetCircle 
             name="Nina" 
             selected 
-            onPress={() => router.push("/PetProfile")} 
+            onPress={() => router.push("/petprofile")} 
           />
           <PetCircle name="Pipo" />
           <PetCircle name="Totó" />
@@ -41,7 +41,7 @@ export default function Home() {
             <TouchableOpacity 
               style={styles.addButton}
               activeOpacity={0.7}
-              onPress={() => router.push("/AddPet")}
+              onPress={() => router.push("/addpet")}
             >
               <Ionicons name="add" size={35} color="black" />
             </TouchableOpacity>
@@ -57,7 +57,7 @@ export default function Home() {
   </View>
   
   {/* AQUI: O onPress deve ir no TouchableOpacity */}
-  <TouchableOpacity onPress={() => router.push("/HistoricoPet")}>
+  <TouchableOpacity onPress={() => router.push("/historicopet")}>
     <Text style={styles.verTudo}>ver tudo</Text>
   </TouchableOpacity>
 </View>

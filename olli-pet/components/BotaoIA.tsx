@@ -9,7 +9,7 @@ export default function BotaoIA() {
       <TouchableOpacity 
         style={styles.fab} 
         activeOpacity={0.7}
-        onPress={() => router.push("/ChatAI")} // Garanta que o nome da rota está certo
+        onPress={() => router.push("/chatia")} // Garanta que o nome da rota está certo
       >
         <Ionicons name="chatbubble-ellipses-outline" size={28} color="black" />
       </TouchableOpacity>

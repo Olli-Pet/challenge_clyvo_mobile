@@ -10,11 +10,11 @@ export default function Index() {
   const [senha, setSenha] = useState("123");
 
   function entrar() {
-    router.push("/Home");
+    router.push("/home");
   }
 
   function cadastrar() {
-    router.push("/Cadastro");
+    router.push("/cadastro");
   }
 
   return (
