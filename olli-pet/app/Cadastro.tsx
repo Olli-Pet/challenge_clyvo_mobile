@@ -92,7 +92,7 @@ export default function Cadastro() {
           {/* ESPAÇO PARA A SUA LOGO EM IMAGEM */}
           <View style={styles.logoContainer}>
             <Image 
-              source={require("@/assets/images/Olli Logo.svg")}
+              source={require("./assets/images/Olli Logo.svg")}
               style={styles.logoImage}
               resizeMode="contain"
             />

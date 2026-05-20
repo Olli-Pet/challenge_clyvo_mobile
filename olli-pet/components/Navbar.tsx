@@ -10,7 +10,7 @@ export default function Navbar() {
         <Ionicons name="add" size={35} color="black" />
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push("/Home")}>
+      <TouchableOpacity onPress={() => router.push("/home")}>
         <Ionicons name="home-outline" size={30} color="black" />
       </TouchableOpacity>
 

@@ -1,14 +1,38 @@
 import React from "react";
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, TouchableOpacity } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
 
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import BotaoIA from "@/components/BotaoIA";
 
 export default function PetProfile() {
+  // 1. CAPTURAR OS PARÂMETROS ENVIADOS PELA HOME
+  const params = useLocalSearchParams();
   
+  // Garantir valores padrão caso algum campo venha em branco do banco de dados
+  const nome = (params.nome as string) || "Pet sem nome";
+  const raca = (params.raca as string) || "Não informada";
+  const cor = (params.cor as string) || "Não informada";
+  const porte = (params.porte as string) || "Não informado";
+  const sexo = (params.sexo as string) || "Não informado";
+  const nascimento = (params.nascimento as string) || "Não informado";
+  const info = (params.info as string) || "Este pet não possui uma biografia cadastrada.";
+
+  // 2. FUNÇÃO INTELIGENTE PARA CARREGAR A IMAGEM CORRETA
+  const obterImagemPorRaca = (termo: string) => {
+    const busca = termo.toLowerCase();
+    if (busca.includes("cavalo")) {
+      return require("./assets/images/cavalo.png");
+    }
+    if (busca.includes("ornitorrinco")) {
+      return require("./assets/images/ornitorrinco.png");
+    }
+    // Retorno padrão para cão/dog ou se não bater com nenhum
+    return require("./assets/images/dog.png");
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Header />
@@ -20,42 +44,46 @@ export default function PetProfile() {
           <Text style={styles.backText}>Voltar</Text>
         </TouchableOpacity>
 
-        {/* HEADER DO PET (IMAGEM E NOME) */}
+        {/* HEADER DO PET (IMAGEM E NOME DINÂMICOS) */}
         <View style={styles.petHeader}>
           <View style={styles.imageContainer}>
             <Image 
-              source={require("@/assets/images/dog.png")} // Substitua pela imagem da Nina
+              source={obterImagemPorRaca(raca || nome)} 
               style={styles.petImage} 
+              resizeMode="cover"
             />
           </View>
           
           <View style={styles.nameCard}>
-            <View>
-              <Text style={styles.petNameText}>Nina</Text>
-              <Text style={styles.petBreedText}>pinscher, 2 anos</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.petNameText}>{nome}</Text>
+              <Text style={styles.petBreedText}>{raca}, {nascimento}</Text>
             </View>
             <View style={styles.genderIcons}>
-              <Ionicons name="male" size={24} color="black" style={{ marginRight: 10 }} />
-              <Ionicons name="female" size={24} color="black" />
+              {/* Mostra dinamicamente apenas o ícone correspondente ao sexo */}
+              {sexo.toLowerCase().includes("macho") ? (
+                <Ionicons name="male" size={24} color="black" />
+              ) : sexo.toLowerCase().includes("fêmea") ? (
+                <Ionicons name="female" size={24} color="black" />
+              ) : (
+                <Ionicons name="help-circle-outline" size={24} color="gray" />
+              )}
             </View>
           </View>
         </View>
 
-        {/* BIO PET */}
+        {/* BIO PET DINÂMICA */}
         <View style={styles.section}>
           <Text style={styles.bioTitle}>BioPet</Text>
-          <Text style={styles.bioDescription}>
-            Lorem Ipsum is simply dummy text of the printing and typesetting industry. 
-            Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.
-          </Text>
+          <Text style={styles.bioDescription}>{info}</Text>
         </View>
 
-        {/* SOBRE NINA (CARDS PESO/ALTURA) */}
-        <Text style={styles.mainSectionTitle}>Sobre Nina</Text>
+        {/* SOBRE O PET (CARDS DE ESPECIFICAÇÕES DINÂMICOS) */}
+        <Text style={styles.mainSectionTitle}>Sobre {nome}</Text>
         <View style={styles.statsContainer}>
-          <StatBox label="Peso" value="5,750kg (ideal)" />
-          <StatBox label="Altura" value="35cm" />
-          <StatBox label="Cor" value="Caramelo" />
+          <StatBox label="Porte" value={porte} />
+          <StatBox label="Nascimento" value={nascimento} />
+          <StatBox label="Cor" value={cor} />
         </View>
 
         {/* ÚLTIMOS INSIGHTS */}
@@ -66,8 +94,8 @@ export default function PetProfile() {
         <View style={styles.insightsContainer}>
           <InsightTag text="Condição física: saudável" />
           <InsightTag text="Pelo: saudável" />
-          <InsightTag text="2 refeições (hoje)" />
-          <InsightTag text="Não apresenta apatia" />
+          <InsightTag text="Disposição: normal" />
+          <InsightTag text="Alimentação em dia" />
         </View>
 
         {/* DATAS */}
@@ -80,20 +108,19 @@ export default function PetProfile() {
         </View>
 
         <View style={styles.dateCardsContainer}>
-          <DateCard title="Próxima vacina:" detail="Raiva - 25/07" />
-          <DateCard title="Próxima consulta:" detail="Prevista para 31/09" />
+          <DateCard title="Próxima vacina:" detail="Anual - Pendente" />
+          <DateCard title="Próxima consulta:" detail="Rotina preventiva" />
         </View>
 
       </ScrollView>
 
       <BotaoIA />
-
       <Navbar />
     </SafeAreaView>
   );
 }
 
-// Sub-componentes para limpar o código
+// Sub-componentes mantidos idênticos
 const StatBox = ({ label, value }: {label: string; value: string}) => (
   <View style={styles.statBox}>
     <View style={styles.statLabelContainer}><Text style={styles.statLabelText}>{label}</Text></View>
@@ -116,15 +143,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 120 },
   backButton: { flexDirection: "row", alignItems: "center", marginVertical: 15 },
-  backText: { fontSize: 16, fontWeight: "500" },
+  backText: { fontSize: 16, fontWeight: "500", marginLeft: 5 },
   
   petHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
   imageContainer: { width: 130, height: 130, borderRadius: 65, backgroundColor: '#FDCB5C', overflow: 'hidden', elevation: 5},
   petImage: { width: '100%', height: '100%'},
   nameCard: { backgroundColor: '#FDE4A8', padding: 15, borderRadius: 15, flex: 0.9, elevation: 3, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   petNameText: { fontSize: 20, fontWeight: 'bold' },
-  petBreedText: { fontSize: 12, color: '#444' },
-  genderIcons: { flexDirection: 'row' },
+  petBreedText: { fontSize: 12, color: '#444', marginTop: 2 },
+  genderIcons: { flexDirection: 'row', marginLeft: 10 },
 
   section: { marginVertical: 10 },
   bioTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 5 },

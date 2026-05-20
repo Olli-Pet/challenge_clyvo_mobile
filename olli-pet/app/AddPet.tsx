@@ -38,13 +38,13 @@ export default function AdicionarPet() {
   const obterImagemPet = (termo: string) => {
     const busca = termo.toLowerCase();
     if (busca.includes("cavalo")) {
-      return require("@/assets/images/cavalo.png"); // Substitua pelos caminhos reais da sua pasta
+      return require("./assets/images/cavalo.png"); // Substitua pelos caminhos reais da sua pasta
     }
     if (busca.includes("ornitorrinco")) {
-      return require("@/assets/images/ornitorrinco.png");
+      return require("./assets/images/ornitorrinco.png");
     }
     // Padrão ou se for cão/dog
-    return require("@/assets/images/dog.png"); 
+    return require("./assets/images/dog.png"); 
   };
 
   const handleSalvarPet = async () => {
