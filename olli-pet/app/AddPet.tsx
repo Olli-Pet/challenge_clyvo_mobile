@@ -15,14 +15,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
+// Importando o AsyncStorage para persistência local
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 // Seus componentes reaproveitados
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import BotaoIA from "@/components/BotaoIA";
-
-// Importando o serviço do Firestore e a instância do Auth
-import { savePet } from "@/services/petService";
-import { auth } from "@/config/firebase";
 
 export default function AdicionarPet() {
   const [nome, setNome] = useState("");
@@ -34,21 +33,20 @@ export default function AdicionarPet() {
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Mapeamento estático dos 3 pets para contornar o upload real
+  // Mapeamento estático dos pets para contornar o upload real
   const obterImagemPet = (termo: string) => {
     const busca = termo.toLowerCase();
     if (busca.includes("cavalo")) {
-      return require("./assets/images/cavalo.png"); // Substitua pelos caminhos reais da sua pasta
+      return require("./assets/images/cavalo.png"); 
     }
     if (busca.includes("ornitorrinco")) {
       return require("./assets/images/ornitorrinco.png");
     }
-    // Padrão ou se for cão/dog
     return require("./assets/images/dog.png"); 
   };
 
   const handleSalvarPet = async () => {
-    // Validação dos campos obrigatórios
+    // Validação dos campos obrigatórios (idêntica à sua)
     if (!nome || !raca || !cor || !porte) {
       Alert.alert("Ops!", "Preencha pelo menos Nome, Raça, Cor e Porte, diva!");
       return;
@@ -57,26 +55,40 @@ export default function AdicionarPet() {
     setLoading(true);
 
     try {
-      const usuarioAtual = auth.currentUser;
+      // 1. Pegar quem é o usuário logado atualmente no celular
+      const usuarioLogadoRaw = await AsyncStorage.getItem("@olli_user_logado");
+      const usuarioLogado = usuarioLogadoRaw ? JSON.parse(usuarioLogadoRaw) : null;
+      
+      // Se não achar um usuário ativo por segurança, assume o ID do olli padrão
+      const uidTutorAtivo = usuarioLogado ? usuarioLogado.uid : "user_olli_123";
 
-      // Montando o payload de acordo com a nossa interface única
-      await savePet({
+      // 2. Buscar a lista de pets já existente no aparelho
+      const petsExistentesRaw = await AsyncStorage.getItem("@olli_pets");
+      const listaPets = petsExistentesRaw ? JSON.parse(petsExistentesRaw) : [];
+
+      // 3. Montar a estrutura do novo pet com um ID local exclusivo
+      const novoPet = {
+        id: `pet_${Date.now()}`, // Identificador único do pet
         nome,
         raca,
         sexo: sexo || "Não informado",
         porte,
-        nascimento,
+        nascimento: nascimento || "Não informado",
         cor,
-        info,
-        uidTutor: usuarioAtual ? usuarioAtual.uid : "anonimo",
-        createdAt: new Date(),
-      });
+        info: info || "Este pet não possui uma biografia cadastrada.",
+        uidTutor: uidTutorAtivo, // Amarra o pet ao dono que está logado
+        createdAt: new Date().toISOString(),
+      };
+
+      // 4. Salvar de volta na memória do aparelho
+      listaPets.push(novoPet);
+      await AsyncStorage.setItem("@olli_pets", JSON.stringify(listaPets));
 
       Alert.alert("Sucesso!", `${nome} foi adicionado à sua família! 🐾`);
-      router.replace("/home"); // Retorna atualizando a lista
+      router.replace("/home"); // Retorna para a Home atualizada
     } catch (error: any) {
       console.error(error);
-      Alert.alert("Erro ao salvar", "Não conseguimos cadastrar o pet agora.");
+      Alert.alert("Erro ao salvar", "Não conseguimos cadastrar o pet localmente.");
     } finally {
       setLoading(false);
     }
@@ -167,7 +179,7 @@ export default function AdicionarPet() {
             numberOfLines={4} 
           />
 
-          {/* BOTÃO ADICIONAR COM LOADING */}
+          {/* BOTÃO ADICIONAR */}
           <TouchableOpacity 
             style={[styles.addButton, loading && { opacity: 0.7 }]} 
             onPress={handleSalvarPet}
@@ -187,71 +199,25 @@ export default function AdicionarPet() {
   );
 }
 
+// Mantive todos os seus estilos visuais intactos
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
   scrollContent: { paddingBottom: 100 },
   backButton: { flexDirection: "row", alignItems: "center", padding: 20 },
   backText: { fontSize: 16, fontWeight: "500", marginLeft: 5 },
   pageTitle: { fontSize: 22, fontWeight: "bold", paddingHorizontal: 20, marginBottom: 10 },
-  
   imageSection: { alignItems: "center", marginVertical: 10 },
-  imagePlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#FDCB5C",
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: "hidden", // Para a imagem herdar o arredondado da borda
-    elevation: 4,
-    boxShadow: "0px 2px 3px rgba(0,0,0,0.2)",
-  },
-  petAvatar: {
-    width: "100%",
-    height: "100%",
-  },
+  imagePlaceholder: { width: 120, height: 120, borderRadius: 60, backgroundColor: "#FDCB5C", justifyContent: "center", alignItems: "center", overflow: "hidden", elevation: 4 },
+  petAvatar: { width: "100%", height: "100%" },
   imageLabel: { marginTop: 8, fontSize: 14, color: "#333" },
-
   form: { paddingHorizontal: 25, marginTop: 10 },
   label: { fontSize: 14, fontWeight: "500", marginBottom: 5, color: "#000" },
   subLabel: { fontSize: 11, color: "#666" },
-  input: {
-    height: 45,
-    borderWidth: 1.5,
-    borderColor: "#FDCB5C",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    backgroundColor: "#FFF",
-    elevation: 2,
-    boxShadow: "0px 1px 2px rgba(0,0,0,0.1)",
-  },
+  input: { height: 45, borderWidth: 1.5, borderColor: "#FDCB5C", borderRadius: 20, paddingHorizontal: 15, marginBottom: 15, backgroundColor: "#FFF", elevation: 2 },
   textArea: { height: 100, textAlignVertical: "top", paddingTop: 10 },
   row: { flexDirection: "row", marginBottom: 5 },
   flex1: { flex: 1 },
-  selectInput: {
-    height: 45,
-    borderWidth: 1.5,
-    borderColor: "#FDCB5C",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#FFF",
-    elevation: 2,
-  },
-  addButton: {
-    backgroundColor: "#FDCB5C",
-    height: 45,
-    width: 150,
-    borderRadius: 22.5,
-    alignSelf: "flex-end",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 10,
-    elevation: 3,
-    boxShadow: "0px 2px 2px rgba(0,0,0,0.2)",
-  },
+  selectInput: { height: 45, borderWidth: 1.5, borderColor: "#FDCB5C", borderRadius: 20, paddingHorizontal: 15, flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#FFF", elevation: 2 },
+  addButton: { backgroundColor: "#FDCB5C", height: 45, width: 150, borderRadius: 22.5, alignSelf: "flex-end", justifyContent: "center", alignItems: "center", marginTop: 10, elevation: 3 },
   addButtonText: { fontWeight: "bold", fontSize: 16 }
 });

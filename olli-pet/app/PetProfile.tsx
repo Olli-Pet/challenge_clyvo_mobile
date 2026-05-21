@@ -1,17 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import BotaoIA from "@/components/BotaoIA";
+import ModalInsights from "@/components/ModalInsights"; // <--- Importando o componente novo
 
 export default function PetProfile() {
-  // 1. CAPTURAR OS PARÂMETROS ENVIADOS PELA HOME
   const params = useLocalSearchParams();
   
-  // Garantir valores padrão caso algum campo venha em branco do banco de dados
   const nome = (params.nome as string) || "Pet sem nome";
   const raca = (params.raca as string) || "Não informada";
   const cor = (params.cor as string) || "Não informada";
@@ -20,16 +19,18 @@ export default function PetProfile() {
   const nascimento = (params.nascimento as string) || "Não informado";
   const info = (params.info as string) || "Este pet não possui uma biografia cadastrada.";
 
-  // 2. FUNÇÃO INTELIGENTE PARA CARREGAR A IMAGEM CORRETA
+  const [modalVisivel, setModalVisivel] = useState(false);
+  const [insights, setInsights] = useState([
+    "Condição física: saudável",
+    "Pelo: saudável",
+    "Disposição: normal",
+    "Alimentação em dia"
+  ]);
+
   const obterImagemPorRaca = (termo: string) => {
     const busca = termo.toLowerCase();
-    if (busca.includes("cavalo")) {
-      return require("./assets/images/cavalo.png");
-    }
-    if (busca.includes("ornitorrinco")) {
-      return require("./assets/images/ornitorrinco.png");
-    }
-    // Retorno padrão para cão/dog ou se não bater com nenhum
+    if (busca.includes("cavalo")) return require("./assets/images/cavalo.png");
+    if (busca.includes("ornitorrinco")) return require("./assets/images/ornitorrinco.png");
     return require("./assets/images/dog.png");
   };
 
@@ -44,14 +45,10 @@ export default function PetProfile() {
           <Text style={styles.backText}>Voltar</Text>
         </TouchableOpacity>
 
-        {/* HEADER DO PET (IMAGEM E NOME DINÂMICOS) */}
+        {/* HEADER DO PET */}
         <View style={styles.petHeader}>
           <View style={styles.imageContainer}>
-            <Image 
-              source={obterImagemPorRaca(raca || nome)} 
-              style={styles.petImage} 
-              resizeMode="cover"
-            />
+            <Image source={obterImagemPorRaca(raca || nome)} style={styles.petImage} resizeMode="cover" />
           </View>
           
           <View style={styles.nameCard}>
@@ -60,7 +57,6 @@ export default function PetProfile() {
               <Text style={styles.petBreedText}>{raca}, {nascimento}</Text>
             </View>
             <View style={styles.genderIcons}>
-              {/* Mostra dinamicamente apenas o ícone correspondente ao sexo */}
               {sexo.toLowerCase().includes("macho") ? (
                 <Ionicons name="male" size={24} color="black" />
               ) : sexo.toLowerCase().includes("fêmea") ? (
@@ -72,13 +68,13 @@ export default function PetProfile() {
           </View>
         </View>
 
-        {/* BIO PET DINÂMICA */}
+        {/* BIO PET */}
         <View style={styles.section}>
           <Text style={styles.bioTitle}>BioPet</Text>
           <Text style={styles.bioDescription}>{info}</Text>
         </View>
 
-        {/* SOBRE O PET (CARDS DE ESPECIFICAÇÕES DINÂMICOS) */}
+        {/* SOBRE O PET */}
         <Text style={styles.mainSectionTitle}>Sobre {nome}</Text>
         <View style={styles.statsContainer}>
           <StatBox label="Porte" value={porte} />
@@ -86,16 +82,23 @@ export default function PetProfile() {
           <StatBox label="Cor" value={cor} />
         </View>
 
-        {/* ÚLTIMOS INSIGHTS */}
-        <View style={styles.sectionTitleRow}>
-          <Ionicons name="bulb-outline" size={24} color="black" />
-          <Text style={styles.sectionTitle}>Últimos insights</Text>
+        {/* INSIGHTS */}
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="bulb-outline" size={24} color="black" />
+            <Text style={styles.sectionTitle}>Últimos insights</Text>
+          </View>
+          
+          <TouchableOpacity style={styles.btnGerarInsight} onPress={() => setModalVisivel(true)}>
+            <MaterialCommunityIcons name="auto-fix" size={16} color="black" />
+            <Text style={styles.btnGerarInsightText}>Gerar Insight</Text>
+          </TouchableOpacity>
         </View>
+
         <View style={styles.insightsContainer}>
-          <InsightTag text="Condição física: saudável" />
-          <InsightTag text="Pelo: saudável" />
-          <InsightTag text="Disposição: normal" />
-          <InsightTag text="Alimentação em dia" />
+          {insights.map((item, index) => (
+            <InsightTag key={index} text={item} />
+          ))}
         </View>
 
         {/* DATAS */}
@@ -111,8 +114,15 @@ export default function PetProfile() {
           <DateCard title="Próxima vacina:" detail="Anual - Pendente" />
           <DateCard title="Próxima consulta:" detail="Rotina preventiva" />
         </View>
-
       </ScrollView>
+
+      {/* --- O NOSSO COMPONENTE DO MODAL ENCAIXADO AQUI --- */}
+      <ModalInsights 
+        visivel={modalVisivel}
+        onClose={() => setModalVisivel(false)}
+        nomePet={nome}
+        onInsightsGerados={(novosInsights) => setInsights(novosInsights)}
+      />
 
       <BotaoIA />
       <Navbar />
@@ -120,7 +130,7 @@ export default function PetProfile() {
   );
 }
 
-// Sub-componentes mantidos idênticos
+// Sub-componentes estruturais mantidos abaixo do arquivo
 const StatBox = ({ label, value }: {label: string; value: string}) => (
   <View style={styles.statBox}>
     <View style={styles.statLabelContainer}><Text style={styles.statLabelText}>{label}</Text></View>
@@ -144,7 +154,6 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 20, paddingBottom: 120 },
   backButton: { flexDirection: "row", alignItems: "center", marginVertical: 15 },
   backText: { fontSize: 16, fontWeight: "500", marginLeft: 5 },
-  
   petHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
   imageContainer: { width: 130, height: 130, borderRadius: 65, backgroundColor: '#FDCB5C', overflow: 'hidden', elevation: 5},
   petImage: { width: '100%', height: '100%'},
@@ -152,24 +161,23 @@ const styles = StyleSheet.create({
   petNameText: { fontSize: 20, fontWeight: 'bold' },
   petBreedText: { fontSize: 12, color: '#444', marginTop: 2 },
   genderIcons: { flexDirection: 'row', marginLeft: 10 },
-
   section: { marginVertical: 10 },
   bioTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 5 },
   bioDescription: { fontSize: 13, color: '#666', lineHeight: 18 },
-
   mainSectionTitle: { fontSize: 18, fontWeight: 'bold', textAlign: 'center', marginVertical: 15 },
   statsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   statBox: { width: '31%', borderWidth: 1, borderColor: '#FDCB5C', borderRadius: 10, alignItems: 'center', paddingVertical: 15, backgroundColor: '#FFF', elevation: 2 },
   statLabelContainer: { position: 'absolute', top: -10, backgroundColor: '#FDCB5C', paddingHorizontal: 10, borderRadius: 10 },
   statLabelText: { fontSize: 11, fontWeight: 'bold' },
   statValueText: { fontSize: 12, fontWeight: '600', textAlign: 'center', marginTop: 5 },
-
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 10 },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 10 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginLeft: 8 },
+  btnGerarInsight: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FDE4A8', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#FDCB5C' },
+  btnGerarInsightText: { fontSize: 12, fontWeight: 'bold', marginLeft: 4, color: 'black' },
   insightsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   insightTag: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#FDCB5C', padding: 10, borderRadius: 12, width: '48%', marginBottom: 10, elevation: 2, alignItems: 'center' },
   insightTagText: { fontSize: 12, fontWeight: '500' },
-
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
   verCalendario: { fontSize: 14, color: '#333' },
   dateCardsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },

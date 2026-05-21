@@ -1,16 +1,64 @@
 import React, { useState } from "react";
-import {View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, ScrollView, Image} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, ScrollView, Image, Alert } from "react-native";
 import { router } from "expo-router";
+
+// Importamos o AsyncStorage para salvar quem está logado no aparelho
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import OndaTop from "@/components/Onda";
 import OndaBottom from "@/components/OndaBottom";
 
 export default function Index() {
-  const [email, setEmail] = useState("gaby@gmail.com");
+  const [email, setEmail] = useState("olli@gmail.com"); // Padrão já como Olli!
   const [senha, setSenha] = useState("123");
 
-  function entrar() {
-    router.push("/home");
+  async function entrar() {
+    if (!email || !senha) {
+      Alert.alert("Erro", "Por favor, preencha todos os campos.");
+      return;
+    }
+
+    const emailNormalizado = email.trim().toLowerCase();
+
+    // 1. USUÁRIOS PADRÃO (Olli e Gaby entram direto)
+    if (emailNormalizado === "olli@gmail.com" || emailNormalizado === "gaby@gmail.com") {
+      const usuarioLogado = {
+        uid: emailNormalizado === "olli@gmail.com" ? "user_olli_123" : "user_gaby_456",
+        email: emailNormalizado,
+        nome: emailNormalizado === "olli@gmail.com" ? "Olli" : "Gaby"
+      };
+
+      // Salva no "mini-banco" do celular quem é o usuário logado atual
+      await AsyncStorage.setItem("@olli_user_logado", JSON.stringify(usuarioLogado));
+      
+      router.push("/home");
+      return;
+    }
+
+    // 2. BUSCAR SE EXISTE UM USUÁRIO DE DEMONSTRAÇÃO CRIADO NO APARELHO
+    try {
+      const usuariosCadastradosRaw = await AsyncStorage.getItem("@olli_usuarios_cadastrados");
+      const listaUsuarios = usuariosCadastradosRaw ? JSON.parse(usuariosCadastradosRaw) : [];
+
+      // Procura se o e-mail digitado existe na nossa lista local
+      const usuarioEncontrado = listaUsuarios.find((u: any) => u.email === emailNormalizado && u.senha === senha);
+
+      if (usuarioEncontrado) {
+        const usuarioLogado = {
+          uid: usuarioEncontrado.uid,
+          email: usuarioEncontrado.email,
+          nome: usuarioEncontrado.nome
+        };
+
+        // Salva que esse usuário de demonstração está ativo
+        await AsyncStorage.setItem("@olli_user_logado", JSON.stringify(usuarioLogado));
+        router.push("/home");
+      } else {
+        Alert.alert("Erro de Login", "Usuário não encontrado ou senha incorreta. (Tente olli@gmail.com)");
+      }
+    } catch (e) {
+      Alert.alert("Erro", "Falha ao ler dados locais.");
+    }
   }
 
   function cadastrar() {
@@ -24,20 +72,17 @@ export default function Index() {
       <OndaTop />
       <OndaBottom />
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-          {/* ESPAÇO PARA A SUA LOGO EM IMAGEM */}
-          <View style={styles.logoContainer}>
-            <Image 
-              source={require("../app/assets/images/Olli Logo.svg")}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-          </View>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* LOGO */}
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require("../app/assets/images/Olli Logo.svg")}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
 
-        <Text style={styles.title}>Bem-vindo de volta</Text>
+        <Text style={styles.title}>Bem-vindo de volta (Modo Local)</Text>
 
         {/* EMAIL */}
         <View style={styles.inputGroup}>
@@ -73,107 +118,24 @@ export default function Index() {
 
         {/* LINK */}
         <TouchableOpacity onPress={cadastrar}>
-          <Text style={styles.link}>Não possui conta? Cadastre-se</Text>
+          <Text style={styles.link}>Não possui conta? Crie uma de Demonstração</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+// Mantive exatamente os seus estilos visuais impecáveis
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F2F2F2",
-  },
-
-  content: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 28,
-    paddingTop: 110,
-    paddingBottom: 120,
-  },
-
-  logoContainer: {
-    marginBottom: 30,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoImage: {
-    width: 200,   // Ajuste o tamanho conforme a sua imagem
-    height: 120,  // Ajuste o tamanho conforme a sua imagem
-  },
-
-  logo: {
-    fontSize: 62,
-    fontWeight: "900",
-    textAlign: "center",
-    color: "#000",
-    letterSpacing: 1,
-  },
-
-  logoSub: {
-    fontSize: 14,
-    textAlign: "center",
-    marginTop: -8,
-    letterSpacing: 4,
-    marginBottom: 25,
-    color: "#000",
-  },
-
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 28,
-    color: "#111",
-  },
-
-  inputGroup: {
-    marginBottom: 18,
-  },
-
-  label: {
-    fontSize: 14,
-    marginBottom: 7,
-    marginLeft: 6,
-    color: "#333",
-  },
-
-  input: {
-    backgroundColor: "#FFF",
-    borderRadius: 30,
-    paddingHorizontal: 18,
-    height: 52,
-    borderWidth: 1.5,
-    borderColor: "#E7B84C",
-    fontSize: 15,
-    elevation: 3,
-  },
-
-  button: {
-    backgroundColor: "#E7B84C",
-    height: 52,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 12,
-    elevation: 4,
-  },
-
-  buttonText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#000",
-  },
-
-  link: {
-    textAlign: "center",
-    marginTop: 20,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111",
-    textDecorationLine: "underline",
-  },
+  container: { flex: 1, backgroundColor: "#F2F2F2" },
+  content: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 28, paddingTop: 110, paddingBottom: 120 },
+  logoContainer: { marginBottom: 30, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  logoImage: { width: 200, height: 120 },
+  title: { fontSize: 24, fontWeight: "700", textAlign: "center", marginBottom: 28, color: "#111" },
+  inputGroup: { marginBottom: 18 },
+  label: { fontSize: 14, marginBottom: 7, marginLeft: 6, color: "#333" },
+  input: { backgroundColor: "#FFF", borderRadius: 30, paddingHorizontal: 18, height: 52, borderWidth: 1.5, borderColor: "#E7B84C", fontSize: 15, elevation: 3 },
+  button: { backgroundColor: "#E7B84C", height: 52, borderRadius: 30, justifyContent: "center", alignItems: "center", marginTop: 12, elevation: 4 },
+  buttonText: { fontSize: 16, fontWeight: "700", color: "#000" },
+  link: { textAlign: "center", marginTop: 20, fontSize: 14, fontWeight: "600", color: "#111", textDecorationLine: "underline" },
 });

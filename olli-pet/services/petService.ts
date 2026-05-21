@@ -1,5 +1,5 @@
-import { db } from "../config/firebase";
-import { collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
+import { db, auth } from "../config/firebase";
+import { collection, addDoc, onSnapshot, query, orderBy, where } from "firebase/firestore";
 
 // 1. Uma única interface unificada com todos os campos que você usa no app
 export interface Pet {
@@ -16,10 +16,24 @@ export interface Pet {
   createdAt: Date;
 }
 
-// 2. Função para salvar o Pet no Firestore
+// 2. Função para salvar o Pet no Firestore (Injetando o ID real do Tutor logado)
 export const savePet = async (petData: Pet) => {
   try {
-    const docRef = await addDoc(collection(db, "pets"), petData);
+    // Pega o usuário logado de verdade no momento do cadastro
+    const usuarioAtual = auth.currentUser;
+
+    if (!usuarioAtual) {
+      throw new Error("Nenhum usuário logado para associar o pet!");
+    }
+
+    // Mescla os dados do formulário com o UID real do tutor
+    const dadosFinais = {
+      ...petData,
+      uidTutor: usuarioAtual.uid,
+      createdAt: new Date() // Garante a data atualizada de criação
+    };
+
+    const docRef = await addDoc(collection(db, "pets"), dadosFinais);
     return docRef.id;
   } catch (e) {
     console.error("Erro ao salvar pet: ", e);
@@ -27,9 +41,23 @@ export const savePet = async (petData: Pet) => {
   }
 };
 
-// 3. Função para escutar os pets em tempo real (Home)
+// 3. Função para escutar os pets em tempo real (Filtrando APENAS os do tutor atual)
 export const subscribePets = (callback: (pets: Pet[]) => void) => {
-  const q = query(collection(db, "pets"), orderBy("nome", "asc"));
+  // Pega quem está logado usando o app
+  const usuarioAtual = auth.currentUser;
+
+  // Se ninguém estiver logado, evita crashar o app e retorna uma lista vazia
+  if (!usuarioAtual) {
+    callback([]);
+    return () => {};
+  }
+
+  // MONTA A QUERY FILTRADA: Onde o 'uidTutor' do pet seja IGUAL ao 'uid' do usuário atual
+  const q = query(
+    collection(db, "pets"), 
+    where("uidTutor", "==", usuarioAtual.uid),
+    orderBy("nome", "asc")
+  );
   
   return onSnapshot(q, (snapshot) => {
     const pets = snapshot.docs.map(doc => {

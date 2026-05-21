@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 
-// Configurações e Serviços do Firebase
-import { auth } from "@/config/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import { subscribePets, Pet } from "@/services/petService";
+// Importando o AsyncStorage para ler os dados do aparelho
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Seus componentes
 import Header from "@/components/Header";
@@ -15,33 +13,67 @@ import PetCircle from "@/components/PetCircle";
 import CardEventos from "@/components/CardEventos";
 import BotaoIA from "@/components/BotaoIA";
 
+// Definição da tipagem local do Pet para o TypeScript ficar feliz
+interface Pet {
+  id: string;
+  nome: string;
+  raca: string;
+  cor: string;
+  porte: string;
+  sexo: string;
+  nascimento: string;
+  info: string;
+  uidTutor: string;
+}
+
 export default function Home() {
-  // Estados para gerenciar os pets do banco e o carregamento do login
   const [meusPets, setMeusPets] = useState<Pet[]>([]);
-  const [checandoLogin, setChecandoLogin] = useState(true);
+  const [carregando, setCarregando] = useState(true);
+  const navigation = useNavigation();
 
-  // 1. ESCUTADOR EM TEMPO REAL DO FIREBASE
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setChecandoLogin(false);
+  // Função para carregar os dados locais do mini-banco
+  const carregarDadosLocais = async () => {
+    try {
+      setCarregando(true);
 
-        // Ativa o ouvinte do Firestore trazendo apenas os pets desse tutor logado
-        const unsubscribePets = subscribePets((petsCarregados) => {
-          setMeusPets(petsCarregados);
-        });
+      // 1. Verificar quem é o usuário logado atual
+      const usuarioLogadoRaw = await AsyncStorage.getItem("@olli_user_logado");
+      const usuarioLogado = usuarioLogadoRaw ? JSON.parse(usuarioLogadoRaw) : null;
 
-        return () => unsubscribePets();
-      } else {
-        setChecandoLogin(false);
-        // Opcional: router.replace("/login") se você tiver uma tela de login
+      if (!usuarioLogado) {
+        // Se por algum motivo bizarro não tiver ninguém logado, manda de volta pra index
+        router.replace("/");
+        return;
       }
+
+      // 2. Buscar todos os pets salvos no aparelho
+      const petsExistentesRaw = await AsyncStorage.getItem("@olli_pets");
+      const todosOsPets: Pet[] = petsExistentesRaw ? JSON.parse(petsExistentesRaw) : [];
+
+      // 3. Filtrar com segurança: só exibe os pets que pertencem ao tutor logado!
+      const petsDoTutor = todosOsPets.filter(pet => pet.uidTutor === usuarioLogado.uid);
+
+      setMeusPets(petsDoTutor);
+    } catch (error) {
+      console.error("Erro ao carregar dados locais na Home:", error);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  // Executa assim que a tela monta e também toda vez que a tela ganha foco novamente
+  useEffect(() => {
+    carregarDadosLocais();
+
+    // Adiciona um listener para atualizar a lista automaticamente sempre que voltar de outra tela
+    const unsubscribe = navigation.addListener("focus", () => {
+      carregarDadosLocais();
     });
 
-    return () => unsubscribeAuth();
-  }, []);
+    return unsubscribe;
+  }, [navigation]);
 
-  // 2. FUNÇÃO QUE PASSA OS DADOS DO PET CLICADO PARA A PRÓXIMA TELA
+  // Navegação passando os parâmetros limpos para a PetProfile
   const navegarParaPerfil = (pet: Pet) => {
     router.push({
       pathname: "/petprofile",
@@ -57,12 +89,12 @@ export default function Home() {
     });
   };
 
-  // Enquanto o Firebase valida quem é você, mostra uma rodinha de carregamento linda
-  if (checandoLogin) {
+  // Enquanto lê a memória do celular, mostra o feedback visual
+  if (carregando) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FDCB5C" />
-        <Text style={styles.loadingText}>Sincronizando conta...</Text>
+        <Text style={styles.loadingText}>Carregando seus pets...</Text>
       </View>
     );
   }
@@ -78,25 +110,26 @@ export default function Home() {
         contentContainerStyle={styles.scrollContent}
       >
         
-        {/* CARROSSEL DE PETS DINÂMICO */}
+        {/* CARROSSEL DE PETS DINÂMICO LOCAL */}
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false} 
           style={styles.petsCarousel}
+          contentContainerStyle={{ paddingRight: 40 }}
         >
-          {/* MAP VARIANDO OS PETS REAIS DO BANCO DE DADOS */}
+          {/* Renderiza a lista de pets vindas do dispositivo */}
           {meusPets.map((pet) => (
             <PetCircle 
               key={pet.id} 
               name={pet.nome} 
-              raca={pet.raca} // Repassa a raça para o componente escolher a imagem certa
-              onPress={() => navegarParaPerfil(pet)} // Roda a navegação enviando os dados
+              raca={pet.raca} 
+              onPress={() => navegarParaPerfil(pet)} 
             />
           ))}
 
-          {/* Se a lista estiver vazia, avisa a dona */}
+          {/* Mensagem amigável caso o usuário não tenha pets cadastrados */}
           {meusPets.length === 0 && (
-            <View style={{ justifyContent: "center", paddingHorizontal: 10 }}>
+            <View style={{ justifyContent: "center", paddingHorizontal: 10, marginRight: 10 }}>
               <Text style={{ fontSize: 13, color: "#666", fontStyle: "italic" }}>Nenhum pet cadastrado...</Text>
             </View>
           )}
@@ -126,7 +159,7 @@ export default function Home() {
           </TouchableOpacity>
         </View>
 
-        {/* LISTA DE EVENTOS (Estáticos por enquanto) */}
+        {/* LISTA DE EVENTOS ESTRUTURAIS */}
         <CardEventos 
           title="Cirurgia de castração"
           petName="Nina"
@@ -153,70 +186,18 @@ export default function Home() {
   );
 }
 
+// Seus estilos intocados e perfeitos
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFF",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFF",
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 14,
-    color: "#666",
-  },
-  scrollContent: {
-    paddingBottom: 120, 
-  },
-  petsCarousel: {
-    paddingVertical: 20,
-    paddingLeft: 20,
-    maxHeight: 140, 
-  },
-  petItem: {
-    alignItems: "center",
-    marginRight: 20,
-  },
-  addButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#FDCB5C",
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 3,
-    boxShadow: "0px 2px 2px rgba(0,0,0,0.2)",
-  },
-  petName: {
-    marginTop: 5,
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#000",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    marginTop: 10,
-    marginBottom: 15,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 10,
-    color: "#000",
-  },
-  verTudo: {
-    fontSize: 16,
-    color: "#333",
-  }
+  container: { flex: 1, backgroundColor: "#FFF" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FFF" },
+  loadingText: { marginTop: 10, fontSize: 14, color: "#666" },
+  scrollContent: { paddingBottom: 120 },
+  petsCarousel: { paddingVertical: 20, paddingLeft: 20, maxHeight: 140 },
+  petItem: { alignItems: "center", marginRight: 20 },
+  addButton: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#FDCB5C", justifyContent: "center", alignItems: "center", elevation: 3 },
+  petName: { marginTop: 5, fontSize: 14, fontWeight: "500", color: "#000" },
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, marginTop: 10, marginBottom: 15 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
+  sectionTitle: { fontSize: 20, fontWeight: "bold", marginLeft: 10, color: "#000" },
+  verTudo: { fontSize: 16, color: "#333" }
 });

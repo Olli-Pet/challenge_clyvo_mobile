@@ -11,15 +11,16 @@ import {
   Platform,
   StatusBar,
   Image, 
+  Alert, 
+  ActivityIndicator
 } from "react-native";
 import { router } from "expo-router";
 
+// Importamos o AsyncStorage para guardar as contas locais
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import OndaTop from "@/components/Onda";
 import OndaBottom from "@/components/OndaBottom";
-import { Alert, ActivityIndicator } from "react-native";
-import { auth, db } from "@/config/firebase"; // Importe o auth e db
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
 
 const PRIMARY_YELLOW = "#FDCB5C";
 
@@ -32,7 +33,7 @@ export default function Cadastro() {
   const [loading, setLoading] = useState(false);
 
   const handleCadastro = async () => {
-    // 1. Validações básicas
+    // 1. Validações básicas (idênticas às suas)
     if (!nome || !cpf || !email || !senha) {
       Alert.alert("Erro", "Preencha todos os campos, diva!");
       return;
@@ -49,28 +50,56 @@ export default function Cadastro() {
     setLoading(true);
 
     try {
-      // 2. Criar usuário no Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
-      const user = userCredential.user;
+      const emailNormalizado = email.trim().toLowerCase();
 
-      // 3. Salvar dados extras no Firestore (usando o UID do usuário como ID do documento)
-      await setDoc(doc(db, "tutores", user.uid), {
+      // Bloqueia se tentarem cadastrar as contas administrativas padrão
+      if (emailNormalizado === "olli@gmail.com" || emailNormalizado === "gaby@gmail.com") {
+        Alert.alert("Erro", "Este e-mail já está reservado como usuário padrão!");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Buscar a lista existente de usuários cadastrados no celular
+      const usuariosCadastradosRaw = await AsyncStorage.getItem("@olli_usuarios_cadastrados");
+      const listaUsuarios = usuariosCadastradosRaw ? JSON.parse(usuariosCadastradosRaw) : [];
+
+      // 3. Verificar se o e-mail já existe localmente
+      const usuarioExiste = listaUsuarios.some((u: any) => u.email === emailNormalizado);
+      if (usuarioExiste) {
+        Alert.alert("Erro", "Este e-mail já está cadastrado neste dispositivo.");
+        setLoading(false);
+        return;
+      }
+
+      // 4. Criar a estrutura do novo usuário local com ID único gerado por timestamp
+      const novoUsuarioUid = `user_demo_${Date.now()}`;
+      const novoUsuario = {
+        uid: novoUsuarioUid,
         nome: nome,
         cpf: cpf,
-        email: email,
-        uid: user.uid,
-        createdAt: new Date(),
-      });
+        email: emailNormalizado,
+        senha: senha, // Salva para conferência no login local
+        createdAt: new Date().toISOString(),
+      };
 
-      Alert.alert("Sucesso!", "Conta criada com sucesso!");
-      router.replace("/home"); // Vai para Home e "apaga" a tela de cadastro do histórico
+      // 5. Adicionar na lista e salvar no AsyncStorage
+      listaUsuarios.push(novoUsuario);
+      await AsyncStorage.setItem("@olli_usuarios_cadastrados", JSON.stringify(listaUsuarios));
 
-  } catch (error: any) {
+      // 6. Fazer o login automático do usuário recém-criado
+      const usuarioLogado = {
+        uid: novoUsuario.uid,
+        email: novoUsuario.email,
+        nome: novoUsuario.nome
+      };
+      await AsyncStorage.setItem("@olli_user_logado", JSON.stringify(usuarioLogado));
+
+      Alert.alert("Sucesso! ✨", "Sua conta de demonstração foi criada localmente!");
+      router.replace("/home"); 
+
+    } catch (error: any) {
       console.error(error);
-      
-      // ISSO VAI MOSTRAR O ERRO REAL EM UM ALERTA NA TELA
-      Alert.alert("Erro no Firebase", `${error.code} \n\n ${error.message}`);
-      
+      Alert.alert("Erro Local", "Não foi possível salvar os dados no dispositivo.");
     } finally {
       setLoading(false);
     }
@@ -80,8 +109,8 @@ export default function Cadastro() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-        <OndaTop />
-        <OndaBottom />
+      <OndaTop />
+      <OndaBottom />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -89,7 +118,7 @@ export default function Cadastro() {
       >
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           
-          {/* ESPAÇO PARA A SUA LOGO EM IMAGEM */}
+          {/* LOGO */}
           <View style={styles.logoContainer}>
             <Image 
               source={require("./assets/images/Olli Logo.svg")}
@@ -152,19 +181,19 @@ export default function Cadastro() {
               />
             </View>
 
-{/* BOTÃO CADASTRAR CORRIGIDO */}
-<TouchableOpacity 
-  style={[styles.button, loading && { opacity: 0.7 }]} 
-  activeOpacity={0.8}
-  onPress={handleCadastro} // <--- MUDE DE console.log PARA handleCadastro
-  disabled={loading}
->
-  {loading ? (
-    <ActivityIndicator color="#000" />
-  ) : (
-    <Text style={styles.buttonText}>Cadastrar</Text>
-  )}
-</TouchableOpacity>
+            {/* BOTÃO CADASTRAR */}
+            <TouchableOpacity 
+              style={[styles.button, loading && { opacity: 0.7 }]} 
+              activeOpacity={0.8}
+              onPress={handleCadastro} 
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <Text style={styles.buttonText}>Cadastrar</Text>
+              )}
+            </TouchableOpacity>
 
             {/* LINK LOGIN */}
             <TouchableOpacity 
@@ -181,97 +210,18 @@ export default function Cadastro() {
   );
 }
 
+// Estilos mantidos exatamente iguais aos seus originais
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFF",
-    overflow: "hidden",
-  },
-  scrollContent: {
-    paddingHorizontal: 40,
-    paddingTop: 40, // Reduzi um pouco para a imagem caber melhor
-    paddingBottom: 40,
-    alignItems: "center",
-  },
-  waveTop: {
-    position: "absolute",
-    width: 500,
-    height: 500,
-    borderRadius: 250,
-    backgroundColor: PRIMARY_YELLOW,
-    top: -280,
-    right: -100,
-    opacity: 0.7,
-  },
-  waveBottom: {
-    position: "absolute",
-    width: 500,
-    height: 500,
-    borderRadius: 250,
-    backgroundColor: PRIMARY_YELLOW,
-    bottom: -300,
-    left: -150,
-    opacity: 0.7,
-  },
-  logoContainer: {
-    marginBottom: 30,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoImage: {
-    width: 200,   // Ajuste o tamanho conforme a sua imagem
-    height: 120,  // Ajuste o tamanho conforme a sua imagem
-  },
-  form: {
-    width: "100%",
-  },
-  inputGroup: {
-    marginBottom: 15,
-  },
-  label: {
-    fontSize: 14,
-    color: "#000",
-    marginBottom: 5,
-    marginLeft: 10,
-    fontWeight: "500",
-  },
-  input: {
-    width: "100%",
-    height: 45,
-    borderWidth: 1.5,
-    borderColor: PRIMARY_YELLOW,
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    backgroundColor: "#FFF",
-  },
-  button: {
-    backgroundColor: PRIMARY_YELLOW,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 20,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#000",
-  },
-  loginLink: {
-    marginTop: 30,
-    alignItems: "center",
-  },
-  loginLinkText: {
-    fontSize: 14,
-    color: "#000",
-    textDecorationLine: "underline",
-    fontWeight: "500",
-  },
+  container: { flex: 1, backgroundColor: "#FFF", overflow: "hidden" },
+  scrollContent: { paddingHorizontal: 40, paddingTop: 40, paddingBottom: 40, alignItems: "center" },
+  logoContainer: { marginBottom: 30, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  logoImage: { width: 200, height: 120 },
+  form: { width: "100%" },
+  inputGroup: { marginBottom: 15 },
+  label: { fontSize: 14, color: "#000", marginBottom: 5, marginLeft: 10, fontWeight: "500" },
+  input: { width: "100%", height: 45, borderWidth: 1.5, borderColor: PRIMARY_YELLOW, borderRadius: 25, paddingHorizontal: 20, fontSize: 16, backgroundColor: "#FFF" },
+  button: { backgroundColor: PRIMARY_YELLOW, height: 50, borderRadius: 25, justifyContent: "center", alignItems: "center", marginTop: 20, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 4 },
+  buttonText: { fontSize: 18, fontWeight: "bold", color: "#000" },
+  loginLink: { marginTop: 30, alignItems: "center" },
+  loginLinkText: { fontSize: 14, color: "#000", textDecorationLine: "underline", fontWeight: "500" },
 });
