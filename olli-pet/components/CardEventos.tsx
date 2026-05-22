@@ -8,9 +8,18 @@ interface EventCardProps {
   doctor: string;
   clinic: string;
   status: string;
+  onPressDescricao?: () => void; // Nova prop opcional para controlar o clique externo
 }
 
-export default function CardEventos({ title, petName, date, doctor, clinic, status }: EventCardProps) {
+export default function CardEventos({ 
+  title, 
+  petName, 
+  date, 
+  doctor, 
+  clinic, 
+  status, 
+  onPressDescricao 
+}: EventCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -25,13 +34,17 @@ export default function CardEventos({ title, petName, date, doctor, clinic, stat
         <Text style={styles.cardInfo}>Clínica: {clinic}</Text>
       </View>
 
-      {/* Corrigido de <div> para <View> */}
       <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.actionButton} activeOpacity={0.7}>
           <Text style={styles.buttonText}>Status: {status}</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.actionButton} activeOpacity={0.7}>
+        {/* Agora este botão dispara a função passada pela tela pai */}
+        <TouchableOpacity 
+          style={styles.actionButton} 
+          activeOpacity={0.7}
+          onPress={onPressDescricao}
+        >
           <Text style={styles.buttonText}>Descrição</Text>
         </TouchableOpacity>
       </View>
@@ -48,9 +61,7 @@ const styles = StyleSheet.create({
     borderRadius: 15, 
     borderWidth: 1, 
     borderColor: "#FDCB5C",
-    // Sombra para Android
     elevation: 4, 
-    // Sombra para iOS
     shadowColor: "#000", 
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1, 

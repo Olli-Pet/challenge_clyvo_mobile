@@ -13,7 +13,10 @@ import PetCircle from "@/components/PetCircle";
 import CardEventos from "@/components/CardEventos";
 import BotaoIA from "@/components/BotaoIA";
 
-// Definição da tipagem local do Pet para o TypeScript ficar feliz
+// Importando o novo modal de descrição simples
+import ModalDescricaoEvento from "@/components/ModalDescricaoEvento";
+
+// Definição da tipagem local do Pet
 interface Pet {
   id: string;
   nome: string;
@@ -26,9 +29,24 @@ interface Pet {
   uidTutor: string;
 }
 
+// Tipagem para os dados do evento que vão para o modal
+interface EventoSelecionado {
+  title: string;
+  petName: string;
+  date: string;
+  doctor: string;
+  clinic: string;
+  description: string;
+}
+
 export default function Home() {
   const [meusPets, setMeusPets] = useState<Pet[]>([]);
   const [carregando, setCarregando] = useState(true);
+  
+  // Controle do modal de descrição do card
+  const [modalDescricaoVisible, setModalDescricaoVisible] = useState(false);
+  const [eventoParaExibir, setEventoParaExibir] = useState<EventoSelecionado | null>(null);
+  
   const navigation = useNavigation();
 
   // Função para carregar os dados locais do mini-banco
@@ -41,7 +59,6 @@ export default function Home() {
       const usuarioLogado = usuarioLogadoRaw ? JSON.parse(usuarioLogadoRaw) : null;
 
       if (!usuarioLogado) {
-        // Se por algum motivo bizarro não tiver ninguém logado, manda de volta pra index
         router.replace("/");
         return;
       }
@@ -61,17 +78,30 @@ export default function Home() {
     }
   };
 
-  // Executa assim que a tela monta e também toda vez que a tela ganha foco novamente
   useEffect(() => {
     carregarDadosLocais();
 
-    // Adiciona um listener para atualizar a lista automaticamente sempre que voltar de outra tela
     const unsubscribe = navigation.addListener("focus", () => {
       carregarDadosLocais();
     });
 
     return unsubscribe;
   }, [navigation]);
+
+  // Função para abrir o modal de descrição montando os dados dinamicamente
+  const abrirDescricaoEvento = (title: string, date: string, description: string) => {
+    if (meusPets.length === 0) return;
+    
+    setEventoParaExibir({
+      title,
+      petName: meusPets[0].nome, // Vincula ao primeiro pet do carrossel
+      date,
+      doctor: "André Rosa",
+      clinic: "WE Vets",
+      description
+    });
+    setModalDescricaoVisible(true);
+  };
 
   // Navegação passando os parâmetros limpos para a PetProfile
   const navegarParaPerfil = (pet: Pet) => {
@@ -89,7 +119,6 @@ export default function Home() {
     });
   };
 
-  // Enquanto lê a memória do celular, mostra o feedback visual
   if (carregando) {
     return (
       <View style={styles.loadingContainer}>
@@ -98,6 +127,8 @@ export default function Home() {
       </View>
     );
   }
+
+  const nomePetPrincipal = meusPets.length > 0 ? meusPets[0].nome : "Pet";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -117,7 +148,6 @@ export default function Home() {
           style={styles.petsCarousel}
           contentContainerStyle={{ paddingRight: 40 }}
         >
-          {/* Renderiza a lista de pets vindas do dispositivo */}
           {meusPets.map((pet) => (
             <PetCircle 
               key={pet.id} 
@@ -127,7 +157,6 @@ export default function Home() {
             />
           ))}
 
-          {/* Mensagem amigável caso o usuário não tenha pets cadastrados */}
           {meusPets.length === 0 && (
             <View style={{ justifyContent: "center", paddingHorizontal: 10, marginRight: 10 }}>
               <Text style={{ fontSize: 13, color: "#666", fontStyle: "italic" }}>Nenhum pet cadastrado...</Text>
@@ -159,34 +188,60 @@ export default function Home() {
           </TouchableOpacity>
         </View>
 
-        {/* LISTA DE EVENTOS ESTRUTURAIS */}
-        <CardEventos 
-          title="Cirurgia de castração"
-          petName="Nina"
-          date="05/07/2020"
-          doctor="André Rosa"
-          clinic="WE Vets"
-          status="finalizada"
-        />
+        {/* LISTA DE EVENTOS INTEGRADA COM O MODAL DE DESCRIÇÃO */}
+        {meusPets.length > 0 ? (
+          <View>
+            <CardEventos 
+              title="Cirurgia de castração"
+              petName={nomePetPrincipal}
+              date="05/07/2020"
+              doctor="André Rosa"
+              clinic="WE Vets"
+              status="finalizada"
+              onPressDescricao={() => abrirDescricaoEvento(
+                "Cirurgia de castração",
+                "05/07/2020",
+                "Procedimento cirúrgico eletivo realizado sem intercorrências. O paciente permaneceu estável sob anestesia inalatória. Recomendado repouso absoluto por 10 dias e uso de colar elisabetano."
+              )}
+            />
 
-        <CardEventos 
-          title="Cirurgia de amputação"
-          petName="Pipo"
-          date="20/05/2020"
-          doctor="André Rosa"
-          clinic="WE Vets"
-          status="finalizada"
-        />
+            <CardEventos 
+              title="Cirurgia de amputação"
+              petName={nomePetPrincipal}
+              date="20/05/2020"
+              doctor="André Rosa"
+              clinic="WE Vets"
+              status="finalizada"
+              onPressDescricao={() => abrirDescricaoEvento(
+                "Cirurgia de amputação",
+                "20/05/2020",
+                "Amputação cirúrgica do membro posterior esquerdo devido a trauma severo prévio. Suturas limpas. Prescrito protocolo analgésico e antibioticoterapia estrita para o pós-operatório imediato."
+              )}
+            />
+          </View>
+        ) : (
+          <View style={styles.noEventsContainer}>
+            <Text style={styles.noEventsText}>Adicione um pet para começar a registrar eventos.</Text>
+          </View>
+        )}
 
       </ScrollView>
 
+      {/* APENAS O BOTÃO DA IA SOLTINHO NO SEU CANTO */}
       <BotaoIA />
+
+      {/* COMPONENTE DO MODAL DE DESCRIÇÃO DO EVENTO */}
+      <ModalDescricaoEvento 
+        visible={modalDescricaoVisible}
+        onClose={() => setModalDescricaoVisible(false)}
+        eventData={eventoParaExibir}
+      />
+
       <Navbar />
     </SafeAreaView>
   );
 }
 
-// Seus estilos intocados e perfeitos
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FFF" },
@@ -199,5 +254,7 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, marginTop: 10, marginBottom: 15 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
   sectionTitle: { fontSize: 20, fontWeight: "bold", marginLeft: 10, color: "#000" },
-  verTudo: { fontSize: 16, color: "#333" }
+  verTudo: { fontSize: 16, color: "#333" },
+  noEventsContainer: { paddingHorizontal: 20, marginVertical: 15, alignItems: "center" },
+  noEventsText: { fontSize: 14, color: "#888", fontStyle: "italic", textAlign: "center" }
 });
