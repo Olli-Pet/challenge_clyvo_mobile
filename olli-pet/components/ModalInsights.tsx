@@ -20,7 +20,6 @@ export default function ModalInsights({ visivel, onClose, nomePet, onInsightsGer
   const processarNovosInsights = () => {
     setCarregandoIA(true);
 
-    // Simula o processamento da IA
     setTimeout(() => {
       const resultados = [
         "Condição física: avaliada",
@@ -46,7 +45,6 @@ export default function ModalInsights({ visivel, onClose, nomePet, onInsightsGer
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           
-          {/* Header do Modal */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>✨ Alimentar IA para {nomePet}</Text>
             <TouchableOpacity onPress={onClose}>
@@ -56,7 +54,6 @@ export default function ModalInsights({ visivel, onClose, nomePet, onInsightsGer
 
           <Text style={styles.modalSubtitle}>Selecione o estado atual do pet para a IA analisar:</Text>
 
-          {/* SELETOR: ALIMENTAÇÃO */}
           <Text style={styles.selectLabel}>Alimentação de hoje:</Text>
           <View style={styles.optionsRow}>
             {["Alimentação em dia", "Comeu pouco", "Não quis comer"].map((opcao) => (
@@ -72,7 +69,6 @@ export default function ModalInsights({ visivel, onClose, nomePet, onInsightsGer
             ))}
           </View>
 
-          {/* SELETOR: DISPOSIÇÃO */}
           <Text style={styles.optionsRow ? styles.selectLabel : styles.selectLabel}>Comportamento / Energia:</Text>
           <View style={styles.optionsRow}>
             {["Disposição: normal", "Muito agitado", "Meio caidinho/apático"].map((opcao) => (
@@ -88,7 +84,6 @@ export default function ModalInsights({ visivel, onClose, nomePet, onInsightsGer
             ))}
           </View>
 
-          {/* SELETOR: PELO */}
           <Text style={styles.selectLabel}>Estado da pelagem:</Text>
           <View style={styles.optionsRow}>
             {["Pelo: saudável", "Caindo bastante", "Coçando muito"].map((opcao) => (
@@ -104,7 +99,6 @@ export default function ModalInsights({ visivel, onClose, nomePet, onInsightsGer
             ))}
           </View>
 
-          {/* BOTÃO COMPLES DE IA */}
           <TouchableOpacity 
             style={styles.btnSalvarIA} 
             onPress={processarNovosInsights}

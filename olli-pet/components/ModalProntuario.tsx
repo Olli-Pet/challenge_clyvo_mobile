@@ -30,12 +30,11 @@ interface ModalProntuarioProps {
 
 export default function ModalProntuario({ visible, onClose, pet }: ModalProntuarioProps) {
   
-  // Função interna para renderizar o avatar redondinho baseado na raça
   const obterImagemPet = (termo: string) => {
     const busca = termo?.toLowerCase() || "";
     if (busca.includes("cavalo")) return require("@/app/assets/images/cavalo.png");
     if (busca.includes("ornitorrinco")) return require("@/app/assets/images/ornitorrinco.png");
-    return require("@/app/assets/images/dog.png"); // Padrão pinscher/dog
+    return require("@/app/assets/images/dog.png");
   };
 
   return (
@@ -48,7 +47,6 @@ export default function ModalProntuario({ visible, onClose, pet }: ModalProntuar
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           
-          {/* CABEÇALHO DO PRONTUÁRIO */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalHeaderTitle}>PRONTUÁRIO PET</Text>
             <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
@@ -57,8 +55,7 @@ export default function ModalProntuario({ visible, onClose, pet }: ModalProntuar
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalScroll}>
-            
-            {/* BLOCO 1: INFORMAÇÕES DO PET (IGUAL À SUA IMAGEM) */}
+
             <View style={styles.cardInfo}>
               <Image 
                 source={obterImagemPet(pet?.raca || "")} 
@@ -73,7 +70,6 @@ export default function ModalProntuario({ visible, onClose, pet }: ModalProntuar
               </View>
             </View>
 
-            {/* BLOCO 2: INFORMAÇÕES DO RESPONSÁVEL */}
             <View style={styles.cardInfo}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.sectionLabel}>RESPONSÁVEL</Text>
@@ -88,7 +84,6 @@ export default function ModalProntuario({ visible, onClose, pet }: ModalProntuar
               </View>
             </View>
 
-            {/* BLOCO 3: INOVAÇÃO - FICHA DE ANAMNESE (TRIAGEM) */}
             <View style={styles.cardInfo}>
               <Text style={styles.sectionLabel}>FICHA DE ANAMNESE CLÍNICA</Text>
               <Text style={styles.infoText}><Text style={styles.bold}>• Queixa Principal:</Text> Check-up preventivo de rotina e acompanhamento de bem-estar.</Text>
@@ -97,7 +92,6 @@ export default function ModalProntuario({ visible, onClose, pet }: ModalProntuar
               <Text style={styles.infoText}><Text style={styles.bold}>• Histórico Comportamental:</Text> {pet?.info || "Sem observações comportamentais relevantes relatadas pelo tutor."}</Text>
             </View>
 
-            {/* BLOCO 4: LAUDO (IGUAL À SUA IMAGEM) */}
             <View style={styles.cardInfo}>
               <Text style={styles.sectionLabel}>LAUDO</Text>
               
@@ -124,14 +118,14 @@ export default function ModalProntuario({ visible, onClose, pet }: ModalProntuar
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Fundo escurecido semi-transparente
-    justifyContent: "flex-end", // Faz o prontuário subir de baixo para cima
+    backgroundColor: "rgba(0, 0, 0, 0.5)", 
+    justifyContent: "flex-end", 
   },
   modalContent: {
     backgroundColor: "#FFF",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    height: "85%", // Ocupa a maior parte da tela igual a um app nativo premium
+    height: "85%", 
     paddingTop: 20,
   },
   modalHeader: {
@@ -154,7 +148,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 40,
   },
-  // ESTILIZAÇÃO DOS CARDS (BORDAS AMARELAS DA SUA IMAGEM)
+
   cardInfo: {
     borderWidth: 1.5,
     borderColor: "#FDCB5C",
@@ -198,7 +192,7 @@ const styles = StyleSheet.create({
     width: "100%",
     marginTop: 2,
   },
-  // ESTILO DOS ITENS DO LAUDO
+
   laudoItem: {
     width: "100%",
     borderBottomWidth: 1,

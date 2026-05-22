@@ -16,7 +16,6 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 
-// Importamos o AsyncStorage para guardar as contas locais
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import OndaTop from "@/components/Onda";
@@ -33,7 +32,7 @@ export default function Cadastro() {
   const [loading, setLoading] = useState(false);
 
   const handleCadastro = async () => {
-    // 1. Validações básicas (idênticas às suas)
+  
     if (!nome || !cpf || !email || !senha) {
       Alert.alert("Erro", "Preencha todos os campos, diva!");
       return;
@@ -52,18 +51,15 @@ export default function Cadastro() {
     try {
       const emailNormalizado = email.trim().toLowerCase();
 
-      // Bloqueia se tentarem cadastrar as contas administrativas padrão
-      if (emailNormalizado === "olli@gmail.com" || emailNormalizado === "gaby@gmail.com") {
+      if (emailNormalizado === "olli@gmail.com") {
         Alert.alert("Erro", "Este e-mail já está reservado como usuário padrão!");
         setLoading(false);
         return;
       }
 
-      // 2. Buscar a lista existente de usuários cadastrados no celular
       const usuariosCadastradosRaw = await AsyncStorage.getItem("@olli_usuarios_cadastrados");
       const listaUsuarios = usuariosCadastradosRaw ? JSON.parse(usuariosCadastradosRaw) : [];
 
-      // 3. Verificar se o e-mail já existe localmente
       const usuarioExiste = listaUsuarios.some((u: any) => u.email === emailNormalizado);
       if (usuarioExiste) {
         Alert.alert("Erro", "Este e-mail já está cadastrado neste dispositivo.");
@@ -71,22 +67,19 @@ export default function Cadastro() {
         return;
       }
 
-      // 4. Criar a estrutura do novo usuário local com ID único gerado por timestamp
       const novoUsuarioUid = `user_demo_${Date.now()}`;
       const novoUsuario = {
         uid: novoUsuarioUid,
         nome: nome,
         cpf: cpf,
         email: emailNormalizado,
-        senha: senha, // Salva para conferência no login local
+        senha: senha, 
         createdAt: new Date().toISOString(),
       };
 
-      // 5. Adicionar na lista e salvar no AsyncStorage
       listaUsuarios.push(novoUsuario);
       await AsyncStorage.setItem("@olli_usuarios_cadastrados", JSON.stringify(listaUsuarios));
 
-      // 6. Fazer o login automático do usuário recém-criado
       const usuarioLogado = {
         uid: novoUsuario.uid,
         email: novoUsuario.email,
@@ -94,12 +87,12 @@ export default function Cadastro() {
       };
       await AsyncStorage.setItem("@olli_user_logado", JSON.stringify(usuarioLogado));
 
-      Alert.alert("Sucesso! ✨", "Sua conta de demonstração foi criada localmente!");
+      Alert.alert("Sucesso! ✨", "Cadastro devidamente realizado.");
       router.replace("/home"); 
 
     } catch (error: any) {
       console.error(error);
-      Alert.alert("Erro Local", "Não foi possível salvar os dados no dispositivo.");
+      Alert.alert("Erro Local", "Não foi possível seguir com o cadastro.");
     } finally {
       setLoading(false);
     }
@@ -118,16 +111,14 @@ export default function Cadastro() {
       >
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           
-          {/* LOGO */}
           <View style={styles.logoContainer}>
             <Image 
-              source={require("./assets/images/Olli Logo.svg")}
+              source={require("./assets/images/olli-logo.png")}
               style={styles.logoImage}
               resizeMode="contain"
             />
           </View>
 
-          {/* FORMULÁRIO */}
           <View style={styles.form}>
             
             <View style={styles.inputGroup}>
@@ -181,7 +172,6 @@ export default function Cadastro() {
               />
             </View>
 
-            {/* BOTÃO CADASTRAR */}
             <TouchableOpacity 
               style={[styles.button, loading && { opacity: 0.7 }]} 
               activeOpacity={0.8}
@@ -195,7 +185,6 @@ export default function Cadastro() {
               )}
             </TouchableOpacity>
 
-            {/* LINK LOGIN */}
             <TouchableOpacity 
               style={styles.loginLink} 
               onPress={() => router.push("/")}
@@ -210,12 +199,11 @@ export default function Cadastro() {
   );
 }
 
-// Estilos mantidos exatamente iguais aos seus originais
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF", overflow: "hidden" },
   scrollContent: { paddingHorizontal: 40, paddingTop: 40, paddingBottom: 40, alignItems: "center" },
-  logoContainer: { marginBottom: 30, width: '100%', alignItems: 'center', justifyContent: 'center' },
-  logoImage: { width: 200, height: 120 },
+  logoContainer: { marginBottom: 10, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  logoImage: { width: 210, height: 240 },
   form: { width: "100%" },
   inputGroup: { marginBottom: 15 },
   label: { fontSize: 14, color: "#000", marginBottom: 5, marginLeft: 10, fontWeight: "500" },

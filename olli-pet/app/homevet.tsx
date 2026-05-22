@@ -4,7 +4,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useNavigation } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Reaproveitando seus componentes e o modal de prontuário adaptado
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar"; 
 import ModalProntuarioVet from "@/components/ModalProntuarioVet";
@@ -26,7 +25,6 @@ export default function HomeVet() {
   const [todosOsPets, setTodosOsPets] = useState<(Pet & { nomeTutor: string })[]>([]);
   const [carregando, setCarregando] = useState(true);
   
-  // Controle do Modal de Prontuário do Vet
   const [modalProntuarioVisible, setModalProntuarioVisible] = useState(false);
   const [petSelecionado, setPetSelecionado] = useState<Pet | null>(null);
 
@@ -36,14 +34,12 @@ export default function HomeVet() {
     try {
       setCarregando(true);
 
-      // 1. Pegar todos os pets e todos os tutores cadastrados no aparelho
       const petsRaw = await AsyncStorage.getItem("@olli_pets");
       const tutoresRaw = await AsyncStorage.getItem("@olli_usuarios_cadastrados");
 
       const listaPets: Pet[] = petsRaw ? JSON.parse(petsRaw) : [];
       const listaTutores: Tutor[] = tutoresRaw ? JSON.parse(tutoresRaw) : [];
 
-      // 2. Cruzar os dados para descobrir o nome do dono de cada pet
       const petsComTutor = listaPets.map(pet => {
         const tutor = listaTutores.find(t => t.uid === pet.uidTutor);
         return {
@@ -85,13 +81,11 @@ export default function HomeVet() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#66A6FA" />
-      
-      {/* Header adaptada que já fizemos */}
+
       <Header />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {/* BANNER DE BOAS-VINDAS VET */}
         <View style={styles.welcomeBanner}>
           <Text style={styles.bannerTitle}>Painel Clínico Geral</Text>
           <Text style={styles.bannerSub}>Gerencie prontuários e adicione históricos de consultas.</Text>
@@ -102,7 +96,6 @@ export default function HomeVet() {
           <Text style={styles.sectionTitle}>Pacientes Cadastrados ({todosOsPets.length})</Text>
         </View>
 
-        {/* LISTAGEM DOS PETS DO SISTEMA */}
         <View style={styles.listaContainer}>
           {todosOsPets.map((pet) => (
             <TouchableOpacity 
@@ -132,17 +125,15 @@ export default function HomeVet() {
 
       </ScrollView>
 
-      {/* MODAL DE PRONTUÁRIO COM ACESSO A ADIÇÃO DE CONSULTA */}
       <ModalProntuarioVet 
         visible={modalProntuarioVisible}
         onClose={() => {
           setModalProntuarioVisible(false);
-          carregarDadosGerais(); // Recarrega se o vet salvou algo novo
+          carregarDadosGerais(); 
         }}
         pet={petSelecionado}
       />
 
-      <Navbar />
     </SafeAreaView>
   );
 }

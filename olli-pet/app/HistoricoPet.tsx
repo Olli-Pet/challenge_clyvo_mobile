@@ -11,7 +11,6 @@ import CardEventos from "@/components/CardEventos";
 import BotaoIA from "@/components/BotaoIA";
 import ModalProntuario from "@/components/ModalProntuario";
 
-// IMPORTANDO O NOVO MODAL DE DESCRIÇÃO
 import ModalDescricaoEvento from "@/components/ModalDescricaoEvento";
 
 interface Pet {
@@ -26,7 +25,6 @@ interface Pet {
   uidTutor: string;
 }
 
-// Tipagem para os dados que vão para o modal de descrição
 interface EventoSelecionado {
   title: string;
   petName: string;
@@ -41,7 +39,6 @@ export default function HistoricoPet() {
   const [petSelecionado, setPetSelecionado] = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // ESTADOS DOS DOIS MODAIS distintos
   const [modalProntuarioVisible, setModalProntuarioVisible] = useState(false);
   const [modalDescricaoVisible, setModalDescricaoVisible] = useState(false);
   const [eventoParaExibir, setEventoParaExibir] = useState<EventoSelecionado | null>(null);
@@ -85,7 +82,6 @@ export default function HistoricoPet() {
     return unsubscribe;
   }, [navigation]);
 
-  // FUNÇÃO AUXILIAR PARA ABRIR O MODAL DE DESCRIÇÃO COM OS DADOS CERTOS
   const abrirDescricaoEvento = (title: string, date: string, description: string) => {
     if (!petSelecionado) return;
     
@@ -117,13 +113,11 @@ export default function HistoricoPet() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {/* BOTÃO VOLTAR */}
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="black" />
           <Text style={styles.backText}>Voltar</Text>
         </TouchableOpacity>
 
-        {/* SELETOR DE PETS */}
         {meusPets.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabContainer}>
             {meusPets.map((pet) => (
@@ -142,7 +136,6 @@ export default function HistoricoPet() {
           </View>
         )}
 
-        {/* BIO DO PET */}
         {petSelecionado && (
           <View style={styles.bioSection}>
             <Text style={styles.bioTitle}>BioPet - {petSelecionado.nome}</Text>
@@ -153,7 +146,6 @@ export default function HistoricoPet() {
           </View>
         )}
 
-        {/* LISTA DE EVENTOS COM ACIONAMENTO DO SEGUNDO MODAL */}
         {petSelecionado ? (
           <View>
             <CardEventos 
@@ -189,7 +181,6 @@ export default function HistoricoPet() {
         )}
       </ScrollView>
 
-      {/* BOTÕES FLUTUANTES (FAB) */}
       <View style={styles.fabContainer}>
         <TouchableOpacity 
           style={[styles.fab, !petSelecionado && { opacity: 0.5 }]} 
@@ -201,21 +192,18 @@ export default function HistoricoPet() {
         <BotaoIA />
       </View>
 
-      {/* MODAL 1: PRONTUÁRIO GERAL (BOTÃO FLUTUANTE) */}
       <ModalProntuario 
         visible={modalProntuarioVisible}
         onClose={() => setModalProntuarioVisible(false)}
         pet={petSelecionado}
       />
 
-      {/* MODAL 2: DETALHES DO EVENTO ESPECÍFICO (BOTÃO DESCRIÇÃO) */}
       <ModalDescricaoEvento 
         visible={modalDescricaoVisible}
         onClose={() => setModalDescricaoVisible(false)}
         eventData={eventoParaExibir}
       />
 
-      <Navbar />
     </SafeAreaView>
   );
 }

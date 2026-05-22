@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-// Importando os novos modais organizados
 import ModalMenu from './ModalMenu';
 import ModalPerfil from './ModalPerfil';
 import ModalGerenciarPets from './ModalGerenciarPets';
@@ -14,21 +13,18 @@ export default function Header() {
 
   return (
     <View style={styles.header}>
-      {/* ESPAÇO PARA O SEU LOGO SVG */}
       <View style={styles.logoContainer}>
-        {/* Dica: Quando configurar o 'react-native-svg-transformer', 
-          você poderá renderizar o SVG direto aqui. Por enquanto, 
-          mantemos o placeholder estável para não travar o app.
-        */}
-        <Ionicons name="paw" size={32} color="black" /> 
+        <Image 
+          source={require("../app/assets/images/olli-logo.png")}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
       </View>
 
-      {/* BOTÃO HAMBÚRGUER */}
       <TouchableOpacity activeOpacity={0.7} onPress={() => setMenuVisible(true)}>
         <Ionicons name="menu" size={32} color="black" />
       </TouchableOpacity>
 
-      {/* RENDERIZAÇÃO DOS MODAIS DE CONTROLE */}
       <ModalMenu 
         visible={menuVisible} 
         onClose={() => setMenuVisible(false)}
@@ -70,5 +66,9 @@ const styles = StyleSheet.create({
   logoContainer: {
     justifyContent: "center",
     alignItems: "flex-start",
+  },
+  logoImage: {
+    width: 100,
+    height: 40,
   }
 });

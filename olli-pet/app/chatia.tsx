@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { 
   View, Text, StyleSheet, SafeAreaView, TextInput, 
-  TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform 
+  TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator 
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -12,15 +12,64 @@ import Navbar from "@/components/Navbar";
 
 import { sendMessageToGemini } from "@/services/api/GeminiApi";
 
+// Tipagem básica das mensagens
+interface Message {
+  id: string;
+  text: string;
+  sender: "me" | "olli";
+}
+
 export default function ChatAI() {
   const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<Message[]>([
+    { id: "1", text: "Olá! Sou a OLLIA. Como posso ajudar você e seu pet hoje?", sender: "olli" }
+  ]);
+  const [loading, setLoading] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
+  const sendMessage = async () => {
+    const textToSend = input.trim();
+    if (textToSend === "" || loading) return;
 
-  const sendMessage = () => {
-    if (input.trim() === "") return;
-    // Aqui entra a lógica da API que te mostro abaixo
-    console.log("Enviando para Gemini:", input);
+    // 1. Cria a mensagem do usuário
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text: textToSend,
+      sender: "me"
+    };
+
+    // Atualiza a lista com a sua mensagem e limpa o input
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setLoading(true);
+
+    // Rola para o fim depois que a mensagem renderizar
+    setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+
+    try {
+      console.log("Enviando para Gemini:", textToSend);
+      // 2. Dispara a chamada para a sua API do Gemini
+      const response = await sendMessageToGemini(textToSend);
+
+      // 3. Cria a resposta da OLLIA
+      const olliMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: response || "Desculpe, tive um probleminha para processar isso agora.",
+        sender: "olli"
+      };
+
+      setMessages((prev) => [...prev, olliMessage]);
+    } catch (error) {
+      console.error("Erro na resposta do Gemini:", error);
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now().toString(), text: "Ops! Fiquei sem sinal com os meus servidores de ração. Tente de novo!", sender: "olli" }
+      ]);
+    } finally {
+      setLoading(false);
+      // Rola para o fim novamente após a resposta chegar
+      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+    }
   };
 
   return (
@@ -30,31 +79,73 @@ export default function ChatAI() {
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"} 
         style={styles.chatWrapper}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <View style={styles.chatContainer}>
-          {/* Botão Fechar do Print */}
+
+          {/* BOTÃO FECHAR */}
           <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
             <Ionicons name="close" size={28} color="black" />
           </TouchableOpacity>
 
+          {/* TÍTULO */}
           <Text style={styles.chatTitle}>OLLIA</Text>
 
-          {/* INPUT AREA */}
+          {/* LISTA DE MENSAGENS */}
+          <ScrollView 
+            ref={scrollViewRef}
+            contentContainerStyle={styles.messageList}
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+          >
+            {messages.map((item) => (
+              <View 
+                key={item.id} 
+                style={[
+                  styles.messageBubble, 
+                  item.sender === "me" ? styles.meBubble : styles.olliBubble
+                ]}
+              >
+                <Text style={styles.senderName}>
+                  {item.sender === "me" ? "Você" : "Ollia"}
+                </Text>
+                <Text style={styles.messageText}>{item.text}</Text>
+              </View>
+            ))}
+
+            {/* INDICADOR DE DIGITAÇÃO */}
+            {loading && (
+              <View style={[styles.messageBubble, styles.olliBubble, { paddingVertical: 10 }]}>
+                <ActivityIndicator size="small" color="#FDCB5C" />
+              </View>
+            )}
+          </ScrollView>
+
+          {/* ÁREA DE INPUT FIXA EM BAIXO */}
           <View style={styles.inputArea}>
             <TextInput 
               style={styles.textInput} 
               placeholder="Digite aqui..."
+              placeholderTextColor="#999"
               value={input}
               onChangeText={setInput}
+              onSubmitEditing={sendMessage} // Envia ao clicar no "concluído/ir" do teclado
             />
-            <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-              <Ionicons name="chevron-forward" size={24} color="black" />
+            <TouchableOpacity 
+              style={styles.sendButton} 
+              onPress={sendMessage}
+              disabled={loading}
+            >
+              <Ionicons 
+                name={loading ? "hourglass-outline" : "chevron-forward"} 
+                size={24} 
+                color="black" 
+              />
             </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
 
-      <Navbar />
     </SafeAreaView>
   );
 }
@@ -64,10 +155,10 @@ const styles = StyleSheet.create({
   chatWrapper: { flex: 1, paddingHorizontal: 20, paddingTop: 10 },
   chatContainer: {
     flex: 1,
-    backgroundColor: "#FDCB5C", // Cor amarela do fundo do chat
+    backgroundColor: "#FDCB5C", 
     borderRadius: 30,
     padding: 15,
-    marginBottom: 80, // Espaço para a Navbar
+    marginBottom: 85, // Ajustado para dar espaço perfeito para a Navbar
     elevation: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -80,43 +171,55 @@ const styles = StyleSheet.create({
     fontWeight: "900", 
     textAlign: "center", 
     marginTop: -10,
-    letterSpacing: 2
+    letterSpacing: 2,
+    color: "#000"
   },
-  messageList: { paddingVertical: 20 },
+  messageList: { paddingVertical: 15 },
   messageBubble: {
     backgroundColor: "#FFF",
-    padding: 15,
-    borderRadius: 15,
-    marginBottom: 15,
-    width: "85%",
-    elevation: 3,
+    padding: 12,
+    borderRadius: 18,
+    marginBottom: 12,
+    maxWidth: "85%", // Troquei width para maxWidth para o balão se ajustar ao texto
+    elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  olliBubble: { alignSelf: "flex-start" },
-  meBubble: { alignSelf: "flex-end" },
-  senderName: { fontWeight: "bold", fontSize: 16, marginBottom: 5 },
-  messageText: { fontSize: 13, color: "#444", lineHeight: 18 },
+  olliBubble: { 
+    alignSelf: "flex-start",
+    borderTopLeftRadius: 4,
+  },
+  meBubble: { 
+    alignSelf: "flex-end",
+    backgroundColor: "#E3F2FD", // Cor levemente azulada para a mensagem do dono
+    borderTopRightRadius: 4,
+  },
+  senderName: { fontWeight: "bold", fontSize: 13, marginBottom: 3, color: "#333" },
+  messageText: { fontSize: 14, color: "#111", lineHeight: 19 },
   
   inputArea: { 
     flexDirection: "row", 
     alignItems: "center", 
-    marginBottom: 10 
+    marginTop: 5,
+    paddingTop: 5
   },
   textInput: {
     flex: 1,
     backgroundColor: "#FFF",
-    height: 45,
-    borderRadius: 22,
+    height: 48,
+    borderRadius: 24,
     paddingHorizontal: 20,
+    fontSize: 15,
+    color: "#000",
     elevation: 3,
   },
   sendButton: {
     backgroundColor: "#FFF",
-    width: 55,
-    height: 45,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 10,

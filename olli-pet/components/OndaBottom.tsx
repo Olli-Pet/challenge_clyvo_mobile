@@ -1,9 +1,14 @@
+import React from "react";
 import Svg, { Path } from "react-native-svg";
 import { Dimensions } from "react-native";
 
 const { width } = Dimensions.get("window");
 
-export default function OndaBottom() {
+interface OndaProps {
+  color?: string;
+}
+
+export default function OndaBottom({ color = "#E7B84C" }: OndaProps) {
   return (
     <Svg
       width={width + 40}
@@ -17,7 +22,7 @@ export default function OndaBottom() {
       }}
     >
       <Path
-        fill="#E7B84C"
+        fill={color} 
         d="M0,60
            C70,10 150,150 260,120
            C350,95 390,30 430,0

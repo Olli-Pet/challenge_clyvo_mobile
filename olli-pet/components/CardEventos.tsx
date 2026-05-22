@@ -8,7 +8,7 @@ interface EventCardProps {
   doctor: string;
   clinic: string;
   status: string;
-  onPressDescricao?: () => void; // Nova prop opcional para controlar o clique externo
+  onPressDescricao?: () => void; 
 }
 
 export default function CardEventos({ 
@@ -39,7 +39,6 @@ export default function CardEventos({
           <Text style={styles.buttonText}>Status: {status}</Text>
         </TouchableOpacity>
         
-        {/* Agora este botão dispara a função passada pela tela pai */}
         <TouchableOpacity 
           style={styles.actionButton} 
           activeOpacity={0.7}

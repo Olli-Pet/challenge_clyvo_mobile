@@ -24,8 +24,7 @@ export default function ModalDescricaoEvento({ visible, onClose, eventData }: Mo
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback>
             <View style={styles.modalContent}>
-              
-              {/* CABEÇALHO */}
+
               <View style={styles.header}>
                 <Text style={styles.title}>{eventData.title}</Text>
                 <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -33,18 +32,15 @@ export default function ModalDescricaoEvento({ visible, onClose, eventData }: Mo
                 </TouchableOpacity>
               </View>
 
-              {/* DETALHES RÁPIDOS */}
               <Text style={styles.petName}>Paciente: <Text style={styles.bold}>{eventData.petName}</Text></Text>
               <Text style={styles.subInfo}>Data: {eventData.date} | {eventData.clinic}</Text>
               <Text style={styles.subInfo}>Profissional: {eventData.doctor}</Text>
 
               <View style={styles.divider} />
 
-              {/* TEXTO DA DESCRIÇÃO */}
               <Text style={styles.sectionTitle}>Descrição do Procedimento</Text>
               <Text style={styles.descriptionText}>{eventData.description}</Text>
 
-              {/* BOTÃO FECHAR */}
               <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                 <Text style={styles.closeButtonText}>Fechar</Text>
               </TouchableOpacity>

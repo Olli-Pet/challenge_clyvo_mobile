@@ -37,11 +37,9 @@ export default function ModalProntuarioVet({ visible, onClose, pet }: ModalPront
       const petsRaw = await AsyncStorage.getItem("@olli_pets");
       if (petsRaw) {
         const todosOsPets: Pet[] = JSON.parse(petsRaw);
-        
-        // Data atual formatada de forma simples
+
         const dataHoje = new Date().toLocaleDateString("pt-BR");
         
-        // Concatena a nova consulta no topo ou final do histórico
         const historicoAtualizado = `[${dataHoje} - Registro Med Vet]: ${novaEvolucao}\n\n${pet.info || ""}`;
 
         const novosPets = todosOsPets.map(p => 
@@ -64,8 +62,7 @@ export default function ModalProntuarioVet({ visible, onClose, pet }: ModalPront
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.content}>
-          
-          {/* CABEÇALHO */}
+
           <View style={styles.header}>
             <View style={styles.titleRow}>
               <Ionicons name="medical" size={22} color="#66A6FA" />
@@ -77,14 +74,12 @@ export default function ModalProntuarioVet({ visible, onClose, pet }: ModalPront
           </View>
 
           <ScrollView style={{ width: "100%" }} showsVerticalScrollIndicator={false}>
-            
-            {/* HISTÓRICO ATUAL */}
+
             <Text style={styles.sectionLabel}>Histórico de Procedimentos e Consultas</Text>
             <View style={styles.historicoBox}>
               <Text style={styles.historicoText}>{historicoAtual}</Text>
             </View>
 
-            {/* ADICIONAR NOVO REGISTRO */}
             <Text style={styles.sectionLabel}>Adicionar Nova Consulta / Cirurgia</Text>
             <TextInput
               style={styles.inputClinico}
@@ -96,7 +91,6 @@ export default function ModalProntuarioVet({ visible, onClose, pet }: ModalPront
               onChangeText={setNovaEvolucao}
             />
 
-            {/* BOTÃO SALVAR REGISTRO */}
             <TouchableOpacity 
               style={styles.btnSalvar} 
               activeOpacity={0.8}

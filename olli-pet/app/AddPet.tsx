@@ -15,10 +15,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-// Importando o AsyncStorage para persistência local
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Seus componentes reaproveitados
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import BotaoIA from "@/components/BotaoIA";
@@ -33,7 +31,6 @@ export default function AdicionarPet() {
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Mapeamento estático dos pets para contornar o upload real
   const obterImagemPet = (termo: string) => {
     const busca = termo.toLowerCase();
     if (busca.includes("cavalo")) {
@@ -46,7 +43,7 @@ export default function AdicionarPet() {
   };
 
   const handleSalvarPet = async () => {
-    // Validação dos campos obrigatórios (idêntica à sua)
+
     if (!nome || !raca || !cor || !porte) {
       Alert.alert("Ops!", "Preencha pelo menos Nome, Raça, Cor e Porte, diva!");
       return;
@@ -55,20 +52,16 @@ export default function AdicionarPet() {
     setLoading(true);
 
     try {
-      // 1. Pegar quem é o usuário logado atualmente no celular
       const usuarioLogadoRaw = await AsyncStorage.getItem("@olli_user_logado");
       const usuarioLogado = usuarioLogadoRaw ? JSON.parse(usuarioLogadoRaw) : null;
       
-      // Se não achar um usuário ativo por segurança, assume o ID do olli padrão
       const uidTutorAtivo = usuarioLogado ? usuarioLogado.uid : "user_olli_123";
 
-      // 2. Buscar a lista de pets já existente no aparelho
       const petsExistentesRaw = await AsyncStorage.getItem("@olli_pets");
       const listaPets = petsExistentesRaw ? JSON.parse(petsExistentesRaw) : [];
 
-      // 3. Montar a estrutura do novo pet com um ID local exclusivo
       const novoPet = {
-        id: `pet_${Date.now()}`, // Identificador único do pet
+        id: `pet_${Date.now()}`,
         nome,
         raca,
         sexo: sexo || "Não informado",
@@ -80,12 +73,11 @@ export default function AdicionarPet() {
         createdAt: new Date().toISOString(),
       };
 
-      // 4. Salvar de volta na memória do aparelho
       listaPets.push(novoPet);
       await AsyncStorage.setItem("@olli_pets", JSON.stringify(listaPets));
 
       Alert.alert("Sucesso!", `${nome} foi adicionado à sua família! 🐾`);
-      router.replace("/home"); // Retorna para a Home atualizada
+      router.replace("/home"); 
     } catch (error: any) {
       console.error(error);
       Alert.alert("Erro ao salvar", "Não conseguimos cadastrar o pet localmente.");
@@ -94,7 +86,6 @@ export default function AdicionarPet() {
     }
   };
 
-  // Alternador simples para o campo de sexo simulado
   const alternarSexo = () => {
     if (sexo === "Macho") setSexo("Fêmea");
     else if (sexo === "Fêmea") setSexo("Não informado");
@@ -109,7 +100,6 @@ export default function AdicionarPet() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {/* BOTÃO VOLTAR */}
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="black" />
           <Text style={styles.backText}>Voltar</Text>
@@ -117,7 +107,6 @@ export default function AdicionarPet() {
 
         <Text style={styles.pageTitle}>Adicionar PET</Text>
 
-        {/* SEÇÃO DE IMAGEM DINÂMICA */}
         <View style={styles.imageSection}>
           <View style={styles.imagePlaceholder}>
             <Image 
@@ -129,7 +118,6 @@ export default function AdicionarPet() {
           <Text style={styles.imageLabel}>Avatar baseado na Raça</Text>
         </View>
 
-        {/* FORMULÁRIO */}
         <View style={styles.form}>
           <Text style={styles.label}>Nome completo</Text>
           <TextInput style={styles.input} value={nome} onChangeText={setNome} />
@@ -142,7 +130,6 @@ export default function AdicionarPet() {
             placeholder="Ex: Cavalo"
           />
 
-          {/* CAMPOS LADO A LADO */}
           <View style={styles.row}>
             <View style={styles.flex1}>
               <Text style={styles.label}>Data de nascimento{"\n"}<Text style={styles.subLabel}>(opcional)</Text></Text>
@@ -179,7 +166,6 @@ export default function AdicionarPet() {
             numberOfLines={4} 
           />
 
-          {/* BOTÃO ADICIONAR */}
           <TouchableOpacity 
             style={[styles.addButton, loading && { opacity: 0.7 }]} 
             onPress={handleSalvarPet}
@@ -194,12 +180,10 @@ export default function AdicionarPet() {
         </View>
       </ScrollView>
       <BotaoIA />
-      <Navbar />
     </SafeAreaView>
   );
 }
 
-// Mantive todos os seus estilos visuais intactos
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
   scrollContent: { paddingBottom: 100 },

@@ -3,20 +3,16 @@ import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, Sta
 import { Ionicons } from "@expo/vector-icons";
 import { router, useNavigation } from "expo-router";
 
-// Importando o AsyncStorage para ler os dados do aparelho
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Seus componentes
 import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import PetCircle from "@/components/PetCircle";
 import CardEventos from "@/components/CardEventos";
 import BotaoIA from "@/components/BotaoIA";
 
-// Importando o novo modal de descrição simples
 import ModalDescricaoEvento from "@/components/ModalDescricaoEvento";
 
-// Definição da tipagem local do Pet
 interface Pet {
   id: string;
   nome: string;
@@ -29,7 +25,6 @@ interface Pet {
   uidTutor: string;
 }
 
-// Tipagem para os dados do evento que vão para o modal
 interface EventoSelecionado {
   title: string;
   petName: string;
@@ -43,18 +38,15 @@ export default function Home() {
   const [meusPets, setMeusPets] = useState<Pet[]>([]);
   const [carregando, setCarregando] = useState(true);
   
-  // Controle do modal de descrição do card
   const [modalDescricaoVisible, setModalDescricaoVisible] = useState(false);
   const [eventoParaExibir, setEventoParaExibir] = useState<EventoSelecionado | null>(null);
   
   const navigation = useNavigation();
 
-  // Função para carregar os dados locais do mini-banco
   const carregarDadosLocais = async () => {
     try {
       setCarregando(true);
 
-      // 1. Verificar quem é o usuário logado atual
       const usuarioLogadoRaw = await AsyncStorage.getItem("@olli_user_logado");
       const usuarioLogado = usuarioLogadoRaw ? JSON.parse(usuarioLogadoRaw) : null;
 
@@ -63,11 +55,9 @@ export default function Home() {
         return;
       }
 
-      // 2. Buscar todos os pets salvos no aparelho
       const petsExistentesRaw = await AsyncStorage.getItem("@olli_pets");
       const todosOsPets: Pet[] = petsExistentesRaw ? JSON.parse(petsExistentesRaw) : [];
 
-      // 3. Filtrar com segurança: só exibe os pets que pertencem ao tutor logado!
       const petsDoTutor = todosOsPets.filter(pet => pet.uidTutor === usuarioLogado.uid);
 
       setMeusPets(petsDoTutor);
@@ -88,13 +78,12 @@ export default function Home() {
     return unsubscribe;
   }, [navigation]);
 
-  // Função para abrir o modal de descrição montando os dados dinamicamente
   const abrirDescricaoEvento = (title: string, date: string, description: string) => {
     if (meusPets.length === 0) return;
     
     setEventoParaExibir({
       title,
-      petName: meusPets[0].nome, // Vincula ao primeiro pet do carrossel
+      petName: meusPets[0].nome, 
       date,
       doctor: "André Rosa",
       clinic: "WE Vets",
@@ -103,7 +92,6 @@ export default function Home() {
     setModalDescricaoVisible(true);
   };
 
-  // Navegação passando os parâmetros limpos para a PetProfile
   const navegarParaPerfil = (pet: Pet) => {
     router.push({
       pathname: "/petprofile",
@@ -141,7 +129,6 @@ export default function Home() {
         contentContainerStyle={styles.scrollContent}
       >
         
-        {/* CARROSSEL DE PETS DINÂMICO LOCAL */}
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false} 
@@ -163,7 +150,6 @@ export default function Home() {
             </View>
           )}
 
-          {/* BOTÃO ADICIONAR */}
           <View style={styles.petItem}>
             <TouchableOpacity 
               style={styles.addButton}
@@ -176,7 +162,6 @@ export default function Home() {
           </View>
         </ScrollView>
 
-        {/* TÍTULO SEÇÃO */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
             <Ionicons name="list" size={24} color="black" />
@@ -188,7 +173,6 @@ export default function Home() {
           </TouchableOpacity>
         </View>
 
-        {/* LISTA DE EVENTOS INTEGRADA COM O MODAL DE DESCRIÇÃO */}
         {meusPets.length > 0 ? (
           <View>
             <CardEventos 
@@ -227,17 +211,14 @@ export default function Home() {
 
       </ScrollView>
 
-      {/* APENAS O BOTÃO DA IA SOLTINHO NO SEU CANTO */}
       <BotaoIA />
 
-      {/* COMPONENTE DO MODAL DE DESCRIÇÃO DO EVENTO */}
       <ModalDescricaoEvento 
         visible={modalDescricaoVisible}
         onClose={() => setModalDescricaoVisible(false)}
         eventData={eventoParaExibir}
       />
 
-      <Navbar />
     </SafeAreaView>
   );
 }

@@ -39,13 +39,12 @@ export default function PetProfile() {
       <Header />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* BOTÃO VOLTAR */}
+
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="black" />
           <Text style={styles.backText}>Voltar</Text>
         </TouchableOpacity>
 
-        {/* HEADER DO PET */}
         <View style={styles.petHeader}>
           <View style={styles.imageContainer}>
             <Image source={obterImagemPorRaca(raca || nome)} style={styles.petImage} resizeMode="cover" />
@@ -68,13 +67,11 @@ export default function PetProfile() {
           </View>
         </View>
 
-        {/* BIO PET */}
         <View style={styles.section}>
           <Text style={styles.bioTitle}>BioPet</Text>
           <Text style={styles.bioDescription}>{info}</Text>
         </View>
 
-        {/* SOBRE O PET */}
         <Text style={styles.mainSectionTitle}>Sobre {nome}</Text>
         <View style={styles.statsContainer}>
           <StatBox label="Porte" value={porte} />
@@ -82,7 +79,6 @@ export default function PetProfile() {
           <StatBox label="Cor" value={cor} />
         </View>
 
-        {/* INSIGHTS */}
         <View style={styles.sectionHeaderRow}>
           <View style={styles.sectionTitleRow}>
             <Ionicons name="bulb-outline" size={24} color="black" />
@@ -101,7 +97,6 @@ export default function PetProfile() {
           ))}
         </View>
 
-        {/* DATAS */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
             <Ionicons name="calendar-outline" size={24} color="black" />
@@ -116,7 +111,6 @@ export default function PetProfile() {
         </View>
       </ScrollView>
 
-      {/* --- O NOSSO COMPONENTE DO MODAL ENCAIXADO AQUI --- */}
       <ModalInsights 
         visivel={modalVisivel}
         onClose={() => setModalVisivel(false)}
@@ -125,12 +119,10 @@ export default function PetProfile() {
       />
 
       <BotaoIA />
-      <Navbar />
     </SafeAreaView>
   );
 }
 
-// Sub-componentes estruturais mantidos abaixo do arquivo
 const StatBox = ({ label, value }: {label: string; value: string}) => (
   <View style={styles.statBox}>
     <View style={styles.statLabelContainer}><Text style={styles.statLabelText}>{label}</Text></View>

@@ -3,18 +3,17 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 
 interface PetCircleProps {
   name: string;
-  raca?: string; // Adicionamos a raça aqui para saber qual foto exibir
+  raca?: string; 
   selected?: boolean;
   onPress?: () => void;
 }
 
 export default function PetCircle({ name, raca = "", selected, onPress }: PetCircleProps) {
   
-  // Função idêntica à que usamos no cadastro para mapear as fotos locais corretamente
   const obterImagemPorRaca = (termo: string) => {
     const busca = termo.toLowerCase();
     if (busca.includes("cavalo")) {
-      return require("../app/assets/images/cavalo.png"); // Sai de components e entra em app/assets
+      return require("../app/assets/images/cavalo.png"); 
     }
     if (busca.includes("ornitorrinco")) {
       return require("../app/assets/images/ornitorrinco.png");
@@ -53,7 +52,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: "#E0A82E", // Uma cor de destaque caso esteja selecionado
+    borderColor: "#E0A82E", 
     overflow: "hidden",
     backgroundColor: "#FFF"
   },
