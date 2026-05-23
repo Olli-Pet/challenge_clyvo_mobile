@@ -58,6 +58,9 @@ O projeto foi planejado, desenhado e codificado com muito carinho por:
 
 ---
 
+# Link de apresentação no Youtube
+[Vídeo da solução no YT](https://youtu.be/eks4cH251RY?si=QGO8wJ9S4Q36-V-L) 
+
 ## 🚀 Como Executar o Projeto
 
 1. Clone o repositório fechado:
