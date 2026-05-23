@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\gabyb\\\\Downloads\\\\clyvo-challenge-ollipet\\\\olli-pet\" -Force | Where-Object {-not $_.Name.StartsWith\\('node_modules'\\)} | Select-Object Name, @{Name='Type'; Expression={if\\($_.PSIsContainer\\){'DIR'}else{'FILE'}}} | Format-Table -AutoSize)"
-    ]
-  }
-}
