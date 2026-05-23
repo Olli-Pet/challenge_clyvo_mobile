@@ -6,13 +6,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-// Seus componentes de padrão
 import Header from "@/components/Header";
-import Navbar from "@/components/Navbar";
 
-import { sendMessageToGemini } from "@/services/api/GeminiApi";
+import { sendMessageToGemini } from "@/services/api/OpenIAApi";
 
-// Tipagem básica das mensagens
 interface Message {
   id: string;
   text: string;
@@ -31,27 +28,22 @@ export default function ChatAI() {
     const textToSend = input.trim();
     if (textToSend === "" || loading) return;
 
-    // 1. Cria a mensagem do usuário
     const userMessage: Message = {
       id: Date.now().toString(),
       text: textToSend,
       sender: "me"
     };
 
-    // Atualiza a lista com a sua mensagem e limpa o input
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
 
-    // Rola para o fim depois que a mensagem renderizar
     setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
       console.log("Enviando para Gemini:", textToSend);
-      // 2. Dispara a chamada para a sua API do Gemini
       const response = await sendMessageToGemini(textToSend);
 
-      // 3. Cria a resposta da OLLIA
       const olliMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: response || "Desculpe, tive um probleminha para processar isso agora.",
@@ -67,7 +59,7 @@ export default function ChatAI() {
       ]);
     } finally {
       setLoading(false);
-      // Rola para o fim novamente após a resposta chegar
+
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
     }
   };
@@ -83,15 +75,12 @@ export default function ChatAI() {
       >
         <View style={styles.chatContainer}>
 
-          {/* BOTÃO FECHAR */}
           <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
             <Ionicons name="close" size={28} color="black" />
           </TouchableOpacity>
 
-          {/* TÍTULO */}
           <Text style={styles.chatTitle}>OLLIA</Text>
 
-          {/* LISTA DE MENSAGENS */}
           <ScrollView 
             ref={scrollViewRef}
             contentContainerStyle={styles.messageList}
@@ -113,7 +102,6 @@ export default function ChatAI() {
               </View>
             ))}
 
-            {/* INDICADOR DE DIGITAÇÃO */}
             {loading && (
               <View style={[styles.messageBubble, styles.olliBubble, { paddingVertical: 10 }]}>
                 <ActivityIndicator size="small" color="#FDCB5C" />
@@ -121,7 +109,6 @@ export default function ChatAI() {
             )}
           </ScrollView>
 
-          {/* ÁREA DE INPUT FIXA EM BAIXO */}
           <View style={styles.inputArea}>
             <TextInput 
               style={styles.textInput} 
@@ -129,7 +116,7 @@ export default function ChatAI() {
               placeholderTextColor="#999"
               value={input}
               onChangeText={setInput}
-              onSubmitEditing={sendMessage} // Envia ao clicar no "concluído/ir" do teclado
+              onSubmitEditing={sendMessage} 
             />
             <TouchableOpacity 
               style={styles.sendButton} 
@@ -158,7 +145,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FDCB5C", 
     borderRadius: 30,
     padding: 15,
-    marginBottom: 85, // Ajustado para dar espaço perfeito para a Navbar
+    marginBottom: 85, 
     elevation: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -180,7 +167,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 18,
     marginBottom: 12,
-    maxWidth: "85%", // Troquei width para maxWidth para o balão se ajustar ao texto
+    maxWidth: "85%", 
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -193,7 +180,7 @@ const styles = StyleSheet.create({
   },
   meBubble: { 
     alignSelf: "flex-end",
-    backgroundColor: "#E3F2FD", // Cor levemente azulada para a mensagem do dono
+    backgroundColor: "#E3F2FD", 
     borderTopRightRadius: 4,
   },
   senderName: { fontWeight: "bold", fontSize: 13, marginBottom: 3, color: "#333" },

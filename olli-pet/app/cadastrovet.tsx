@@ -70,12 +70,12 @@ export default function CadastroVet() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
-  content: { padding: 30, justifyContent: "center" },
+  content: { padding: 30, justifyContent: "center", marginTop: 50 },
   back: { flexDirection: "row", alignItems: "center", marginBottom: 30 },
   backText: { color: "#66A6FA", marginLeft: 5, fontWeight: "bold" },
   title: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginVertical: 20, color: "#333" },
   inputGroup: { marginBottom: 15 },
-  label: { fontSize: 14, color: "#666", marginBottom: 5 },
+  label: { fontSize: 14, color: "#666", marginBottom: 5, marginTop: 50 },
   input: { borderBottomWidth: 2, borderBottomColor: "#66A6FA", height: 40, fontSize: 16 },
   button: { backgroundColor: "#66A6FA", height: 50, borderRadius: 25, justifyContent: "center", alignItems: "center", marginTop: 30 },
   buttonText: { color: "#FFF", fontWeight: "bold", fontSize: 16 }

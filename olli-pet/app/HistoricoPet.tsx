@@ -6,7 +6,6 @@ import { router, useNavigation } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import Header from "@/components/Header";
-import Navbar from "@/components/Navbar";
 import CardEventos from "@/components/CardEventos";
 import BotaoIA from "@/components/BotaoIA";
 import ModalProntuario from "@/components/ModalProntuario";

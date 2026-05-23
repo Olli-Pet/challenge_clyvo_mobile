@@ -4,14 +4,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useNavigation } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import Header from "@/components/Header";
-import Navbar from "@/components/Navbar"; 
-import ModalProntuarioVet from "@/components/ModalProntuarioVet";
+import ModalProntuarioVetCompleto from "@/components/ModalProntuarioVetCompleto";
+import ModalPerfilVet from "@/components/ModalPerfilVet";
 
 interface Pet {
   id: string;
   nome: string;
   raca: string;
+  cor: string;
+  porte: string;
+  sexo: string;
+  nascimento: string;
   uidTutor: string;
   info: string;
 }
@@ -24,15 +27,23 @@ interface Tutor {
 export default function HomeVet() {
   const [todosOsPets, setTodosOsPets] = useState<(Pet & { nomeTutor: string })[]>([]);
   const [carregando, setCarregando] = useState(true);
-  
+  const [nomeVet, setNomeVet] = useState("Médico(a)");
+
   const [modalProntuarioVisible, setModalProntuarioVisible] = useState(false);
-  const [petSelecionado, setPetSelecionado] = useState<Pet | null>(null);
+  const [petSelecionado, setPetSelecionado] = useState<(Pet & { nomeTutor: string }) | null>(null);
+  const [modalPerfilVisible, setModalPerfilVisible] = useState(false);
 
   const navigation = useNavigation();
 
   const carregarDadosGerais = async () => {
     try {
       setCarregando(true);
+
+      const vetRaw = await AsyncStorage.getItem("@olli_user_logado");
+      if (vetRaw) {
+        const vetDados = JSON.parse(vetRaw);
+        setNomeVet(vetDados.nome || "Médico(a)");
+      }
 
       const petsRaw = await AsyncStorage.getItem("@olli_pets");
       const tutoresRaw = await AsyncStorage.getItem("@olli_usuarios_cadastrados");
@@ -44,7 +55,7 @@ export default function HomeVet() {
         const tutor = listaTutores.find(t => t.uid === pet.uidTutor);
         return {
           ...pet,
-          nomeTutor: tutor ? tutor.nome : "Tutor Desconhecido"
+          nomeTutor: tutor ? tutor.nome : "Responsável Desconhecido"
         };
       });
 
@@ -64,7 +75,7 @@ export default function HomeVet() {
     return unsubscribe;
   }, [navigation]);
 
-  const abrirProntuario = (pet: Pet) => {
+  const abrirProntuario = (pet: Pet & { nomeTutor: string }) => {
     setPetSelecionado(pet);
     setModalProntuarioVisible(true);
   };
@@ -82,13 +93,19 @@ export default function HomeVet() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#66A6FA" />
 
-      <Header />
-
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
         <View style={styles.welcomeBanner}>
-          <Text style={styles.bannerTitle}>Painel Clínico Geral</Text>
-          <Text style={styles.bannerSub}>Gerencie prontuários e adicione históricos de consultas.</Text>
+          <View style={styles.bannerRow}>
+            <View>
+              <Text style={styles.bannerTitle}>Painel Clínico Geral</Text>
+              <Text style={styles.bannerSub}>Olá, {nomeVet}!</Text>
+            </View>
+            <TouchableOpacity style={styles.perfilBtn} onPress={() => setModalPerfilVisible(true)}>
+              <Ionicons name="person-circle-outline" size={32} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.bannerDesc}>Gerencie prontuários e adicione históricos de consultas.</Text>
         </View>
 
         <View style={styles.sectionHeader}>
@@ -125,13 +142,21 @@ export default function HomeVet() {
 
       </ScrollView>
 
-      <ModalProntuarioVet 
+      <ModalProntuarioVetCompleto
         visible={modalProntuarioVisible}
         onClose={() => {
           setModalProntuarioVisible(false);
-          carregarDadosGerais(); 
+          carregarDadosGerais();
         }}
         pet={petSelecionado}
+      />
+
+      <ModalPerfilVet
+        visible={modalPerfilVisible}
+        onClose={() => {
+          setModalPerfilVisible(false);
+          carregarDadosGerais();
+        }}
       />
 
     </SafeAreaView>
@@ -144,8 +169,11 @@ const styles = StyleSheet.create({
   loadingText: { marginTop: 10, fontSize: 14, color: "#666" },
   scrollContent: { paddingBottom: 120 },
   welcomeBanner: { backgroundColor: "#66A6FA", padding: 20, borderBottomLeftRadius: 20, borderBottomRightRadius: 20, marginBottom: 20 },
+  bannerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginTop: 50 },
   bannerTitle: { fontSize: 22, fontWeight: "bold", color: "#FFF" },
-  bannerSub: { fontSize: 13, color: "#E0EEFF", marginTop: 4 },
+  bannerSub: { fontSize: 15, color: "#E0EEFF", marginTop: 2, fontWeight: "600" },
+  bannerDesc: { fontSize: 13, color: "#D0E8FF", marginTop: 8 },
+  perfilBtn: { padding: 4 },
   sectionHeader: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, marginBottom: 15, gap: 8 },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#333" },
   listaContainer: { paddingHorizontal: 20 },

@@ -4,9 +4,8 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 
 import Header from "@/components/Header";
-import Navbar from "@/components/Navbar";
 import BotaoIA from "@/components/BotaoIA";
-import ModalInsights from "@/components/ModalInsights"; // <--- Importando o componente novo
+import ModalInsights from "@/components/ModalInsights"; 
 
 export default function PetProfile() {
   const params = useLocalSearchParams();
@@ -102,7 +101,13 @@ export default function PetProfile() {
             <Ionicons name="calendar-outline" size={24} color="black" />
             <Text style={styles.sectionTitle}>Datas</Text>
           </View>
-          <TouchableOpacity><Text style={styles.verCalendario}>ver calendário</Text></TouchableOpacity>
+
+          <TouchableOpacity 
+            activeOpacity={0.6} 
+            onPress={() => router.push("/calendariopet")}
+          >
+            <Text style={styles.verCalendario}>ver calendário</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.dateCardsContainer}>
@@ -171,7 +176,7 @@ const styles = StyleSheet.create({
   insightTag: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#FDCB5C', padding: 10, borderRadius: 12, width: '48%', marginBottom: 10, elevation: 2, alignItems: 'center' },
   insightTagText: { fontSize: 12, fontWeight: '500' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
-  verCalendario: { fontSize: 14, color: '#333' },
+  verCalendario: { fontSize: 14, color: '#333', textDecorationLine: "underline" }, // Adicionado um sublinhado charmoso de link
   dateCardsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   dateCard: { width: '48%', backgroundColor: '#FDCB5C', padding: 15, borderRadius: 12, elevation: 3, alignItems: 'center' },
   dateCardTitle: { fontSize: 13, fontWeight: '500', textAlign: 'center' },

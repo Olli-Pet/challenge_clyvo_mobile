@@ -11,6 +11,8 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -18,7 +20,6 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import Header from "@/components/Header";
-import Navbar from "@/components/Navbar";
 import BotaoIA from "@/components/BotaoIA";
 
 export default function AdicionarPet() {
@@ -42,8 +43,22 @@ export default function AdicionarPet() {
     return require("./assets/images/dog.png"); 
   };
 
-  const handleSalvarPet = async () => {
+  const formatarData = (text: string) => {
 
+    const apenasNumeros = text.replace(/\D/g, "");
+    
+    let dataFormatada = apenasNumeros;
+    
+    if (apenasNumeros.length > 2 && apenasNumeros.length <= 4) {
+      dataFormatada = `${apenasNumeros.slice(0, 2)}/${apenasNumeros.slice(2)}`;
+    } else if (apenasNumeros.length > 4) {
+      dataFormatada = `${apenasNumeros.slice(0, 2)}/${apenasNumeros.slice(2, 4)}/${apenasNumeros.slice(4, 8)}`;
+    }
+    
+    setNascimento(dataFormatada);
+  };
+
+  const handleSalvarPet = async () => {
     if (!nome || !raca || !cor || !porte) {
       Alert.alert("Ops!", "Preencha pelo menos Nome, Raça, Cor e Porte, diva!");
       return;
@@ -69,7 +84,7 @@ export default function AdicionarPet() {
         nascimento: nascimento || "Não informado",
         cor,
         info: info || "Este pet não possui uma biografia cadastrada.",
-        uidTutor: uidTutorAtivo, // Amarra o pet ao dono que está logado
+        uidTutor: uidTutorAtivo,
         createdAt: new Date().toISOString(),
       };
 
@@ -92,93 +107,115 @@ export default function AdicionarPet() {
     else setSexo("Macho");
   };
 
+  const alternarPorte = () => {
+    if (porte === "Pequeno") setPorte("Médio");
+    else if (porte === "Médio") setPorte("Grande");
+    else setPorte("Pequeno");
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FDCB5C" />
-      
       <Header />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="black" />
-          <Text style={styles.backText}>Voltar</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.pageTitle}>Adicionar PET</Text>
-
-        <View style={styles.imageSection}>
-          <View style={styles.imagePlaceholder}>
-            <Image 
-              source={obterImagemPet(raca || nome)} 
-              style={styles.petAvatar} 
-              resizeMode="cover"
-            />
-          </View>
-          <Text style={styles.imageLabel}>Avatar baseado na Raça</Text>
-        </View>
-
-        <View style={styles.form}>
-          <Text style={styles.label}>Nome completo</Text>
-          <TextInput style={styles.input} value={nome} onChangeText={setNome} />
-
-          <Text style={styles.label}>Raça (Dog, Cavalo, Ornitorrinco)</Text>
-          <TextInput 
-            style={styles.input} 
-            value={raca} 
-            onChangeText={raca => setRaca(raca)} 
-            placeholder="Ex: Cavalo"
-          />
-
-          <View style={styles.row}>
-            <View style={styles.flex1}>
-              <Text style={styles.label}>Data de nascimento{"\n"}<Text style={styles.subLabel}>(opcional)</Text></Text>
-              <TextInput style={styles.input} value={nascimento} onChangeText={setNascimento} placeholder="00/00/0000" />
-            </View>
-            <View style={{ width: 15 }} />
-            <View style={styles.flex1}>
-              <Text style={styles.label}>Cor</Text>
-              <TextInput style={styles.input} value={cor} onChangeText={setCor} />
-            </View>
-          </View>
-
-          <View style={styles.row}>
-            <View style={styles.flex1}>
-              <Text style={styles.label}>Porte</Text>
-              <TextInput style={styles.input} value={porte} onChangeText={setPorte} />
-            </View>
-            <View style={{ width: 15 }} />
-            <View style={styles.flex1}>
-              <Text style={styles.label}>Sexo</Text>
-              <TouchableOpacity style={styles.selectInput} onPress={alternarSexo}>
-                <Text>{sexo || "Selecionar"}</Text>
-                <Ionicons name="chevron-down" size={20} color="black" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <Text style={styles.label}>Informações adicionais</Text>
-          <TextInput 
-            style={[styles.input, styles.textArea]} 
-            value={info} 
-            onChangeText={setInfo} 
-            multiline 
-            numberOfLines={4} 
-          />
-
-          <TouchableOpacity 
-            style={[styles.addButton, loading && { opacity: 0.7 }]} 
-            onPress={handleSalvarPet}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <Text style={styles.addButtonText}>Adicionar</Text>
-            )}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+      >
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={24} color="black" />
+            <Text style={styles.backText}>Voltar</Text>
           </TouchableOpacity>
-        </View>
-      </ScrollView>
+
+          <Text style={styles.pageTitle}>Adicionar PET</Text>
+
+          <View style={styles.imageSection}>
+            <View style={styles.imagePlaceholder}>
+              <Image 
+                source={obterImagemPet(raca || nome)} 
+                style={styles.petAvatar} 
+                resizeMode="cover"
+              />
+            </View>
+            <Text style={styles.imageLabel}>Avatar baseado na Raça</Text>
+          </View>
+
+          <View style={styles.form}>
+            <Text style={styles.label}>Nome completo</Text>
+            <TextInput style={styles.input} value={nome} onChangeText={setNome} />
+
+            <Text style={styles.label}>Raça (Dog, Cavalo, Ornitorrinco)</Text>
+            <TextInput 
+              style={styles.input} 
+              value={raca} 
+              onChangeText={raca => setRaca(raca)} 
+              placeholder="Ex: Cavalo"
+            />
+
+            <View style={styles.row}>
+              <View style={styles.flex1}>
+                <Text style={styles.label}>Data de nascimento{"\n"}<Text style={styles.subLabel}>(opcional)</Text></Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={nascimento} 
+                  onChangeText={formatarData} 
+                  placeholder="DD/MM/AAAA" 
+                  keyboardType="numeric"
+                  maxLength={10} 
+                />
+              </View>
+              <View style={{ width: 15 }} />
+              <View style={styles.flex1}>
+                <Text style={styles.label}>Cor</Text>
+                <TextInput style={styles.input} value={cor} onChangeText={setCor} />
+              </View>
+            </View>
+
+            <View style={styles.row}>
+
+              <View style={styles.flex1}>
+                <Text style={styles.label}>Porte</Text>
+                <TouchableOpacity style={styles.selectInput} onPress={alternarPorte}>
+                  <Text>{porte || "Selecionar"}</Text>
+                  <Ionicons name="chevron-down" size={20} color="black" />
+                </TouchableOpacity>
+              </View>
+              <View style={{ width: 15 }} />
+              <View style={styles.flex1}>
+                <Text style={styles.label}>Sexo</Text>
+                <TouchableOpacity style={styles.selectInput} onPress={alternarSexo}>
+                  <Text>{sexo || "Selecionar"}</Text>
+                  <Ionicons name="chevron-down" size={20} color="black" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <Text style={styles.label}>Informações adicionais</Text>
+            <TextInput 
+              style={[styles.input, styles.textArea]} 
+              value={info} 
+              onChangeText={setInfo} 
+              multiline 
+              numberOfLines={4} 
+            />
+
+            <TouchableOpacity 
+              style={[styles.addButton, loading && { opacity: 0.7 }]} 
+              onPress={handleSalvarPet}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <Text style={styles.addButtonText}>Adicionar</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
       <BotaoIA />
     </SafeAreaView>
   );
@@ -186,7 +223,7 @@ export default function AdicionarPet() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
-  scrollContent: { paddingBottom: 100 },
+  scrollContent: { paddingBottom: 120 }, 
   backButton: { flexDirection: "row", alignItems: "center", padding: 20 },
   backText: { fontSize: 16, fontWeight: "500", marginLeft: 5 },
   pageTitle: { fontSize: 22, fontWeight: "bold", paddingHorizontal: 20, marginBottom: 10 },
@@ -197,7 +234,7 @@ const styles = StyleSheet.create({
   form: { paddingHorizontal: 25, marginTop: 10 },
   label: { fontSize: 14, fontWeight: "500", marginBottom: 5, color: "#000" },
   subLabel: { fontSize: 11, color: "#666" },
-  input: { height: 45, borderWidth: 1.5, borderColor: "#FDCB5C", borderRadius: 20, paddingHorizontal: 15, marginBottom: 15, backgroundColor: "#FFF", elevation: 2 },
+  input: { height: 45, borderWidth: 1.5, borderColor: "#FDCB5C", borderRadius: 20, paddingHorizontal: 15, marginBottom: 15, backgroundColor: "#FFF", elevation: 2, color: "#000" },
   textArea: { height: 100, textAlignVertical: "top", paddingTop: 10 },
   row: { flexDirection: "row", marginBottom: 5 },
   flex1: { flex: 1 },

@@ -24,7 +24,7 @@ export default function ModalPerfil({ visible, onClose }: ModalPerfilProps) {
       <View style={styles.overlay}>
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.title}>Perfil do Tutor</Text>
+            <Text style={styles.title}>Perfil do Responsável</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color="black" />
             </TouchableOpacity>
