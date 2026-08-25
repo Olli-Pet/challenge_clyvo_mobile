@@ -15,11 +15,14 @@ import {
   ActivityIndicator
 } from "react-native";
 import { router } from "expo-router";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import OndaTop from "@/components/Onda";
-import OndaBottom from "@/components/OndaBottom";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../services/firebaseConfig"; // Ajuste o caminho se necessário
+
+import OndaTop from "../components/Onda";
+import OndaBottom from "../components/OndaBottom";
 
 const PRIMARY_YELLOW = "#FDCB5C";
 
@@ -32,17 +35,18 @@ export default function Cadastro() {
   const [loading, setLoading] = useState(false);
 
   const handleCadastro = async () => {
-  
-    if (!nome || !cpf || !email || !senha) {
-      Alert.alert("Erro", "Preencha todos os campos, diva!");
+    if (!nome.trim() || !cpf.trim() || !email.trim() || !senha.trim()) {
+      Alert.alert("Atenção", "Preencha todos os campos obrigatórios!");
       return;
     }
+
     if (senha !== confirmarSenha) {
       Alert.alert("Erro", "As senhas não conferem!");
       return;
     }
+
     if (senha.length < 6) {
-      Alert.alert("Erro", "A senha precisa de pelo menos 6 caracteres.");
+      Alert.alert("Erro", "A senha precisa ter pelo menos 6 caracteres.");
       return;
     }
 
@@ -51,48 +55,48 @@ export default function Cadastro() {
     try {
       const emailNormalizado = email.trim().toLowerCase();
 
-      if (emailNormalizado === "olli@gmail.com") {
-        Alert.alert("Erro", "Este e-mail já está reservado como usuário padrão!");
-        setLoading(false);
-        return;
-      }
+      // 1. Cria a conta no Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, emailNormalizado, senha);
+      const user = userCredential.user;
 
-      const usuariosCadastradosRaw = await AsyncStorage.getItem("@olli_usuarios_cadastrados");
-      const listaUsuarios = usuariosCadastradosRaw ? JSON.parse(usuariosCadastradosRaw) : [];
-
-      const usuarioExiste = listaUsuarios.some((u: any) => u.email === emailNormalizado);
-      if (usuarioExiste) {
-        Alert.alert("Erro", "Este e-mail já está cadastrado neste dispositivo.");
-        setLoading(false);
-        return;
-      }
-
-      const novoUsuarioUid = `user_demo_${Date.now()}`;
-      const novoUsuario = {
-        uid: novoUsuarioUid,
-        nome: nome,
-        cpf: cpf,
+      // 2. Prepara os dados exatamente com a mesma estrutura da sua imagem
+      const tutorData = {
+        uid: user.uid,
+        nome: nome.trim(),
+        cpf: cpf.trim(),
         email: emailNormalizado,
-        senha: senha, 
-        createdAt: new Date().toISOString(),
+        createdAt: new Date()
       };
 
-      listaUsuarios.push(novoUsuario);
-      await AsyncStorage.setItem("@olli_usuarios_cadastrados", JSON.stringify(listaUsuarios));
+      // 3. Salva na coleção 'tutores' usand o UID do usuário gerado pelo Auth
+      await setDoc(doc(db, "tutores", user.uid), tutorData);
 
-      const usuarioLogado = {
-        uid: novoUsuario.uid,
-        email: novoUsuario.email,
-        nome: novoUsuario.nome
-      };
-      await AsyncStorage.setItem("@olli_user_logado", JSON.stringify(usuarioLogado));
+      // 4. Grava a sessão localmente para manter o app logado
+      await AsyncStorage.setItem("@olli_user_logado", JSON.stringify({
+        ...tutorData,
+        tipo: "tutor"
+      }));
 
-      Alert.alert("Sucesso! ✨", "Cadastro devidamente realizado.");
-      router.replace("/home"); 
+      Alert.alert("Sucesso! ✨", "Cadastro realizado com sucesso!", [
+        {
+          text: "OK",
+          onPress: () => router.replace("/Home")
+        }
+      ]);
 
     } catch (error: any) {
-      console.error(error);
-      Alert.alert("Erro Local", "Não foi possível seguir com o cadastro.");
+      console.error("Erro no cadastro:", error);
+      let mensagemErro = "Não foi possível realizar o cadastro.";
+
+      if (error.code === "auth/email-already-in-use") {
+        mensagemErro = "Este e-mail já está em uso por outra conta. Tente fazer login ou use outro e-mail.";
+      } else if (error.code === "auth/invalid-email") {
+        mensagemErro = "Formato de e-mail inválido.";
+      } else if (error.code === "auth/weak-password") {
+        mensagemErro = "A senha escolhida é muito fraca.";
+      }
+
+      Alert.alert("Erro de Cadastro", mensagemErro);
     } finally {
       setLoading(false);
     }
@@ -127,6 +131,7 @@ export default function Cadastro() {
                 style={styles.input} 
                 value={nome} 
                 onChangeText={setNome}
+                placeholder="Digite seu nome"
                 placeholderTextColor="#999"
               />
             </View>
@@ -137,6 +142,8 @@ export default function Cadastro() {
                 style={styles.input} 
                 value={cpf} 
                 onChangeText={setCpf}
+                placeholder="000.000.000-00"
+                placeholderTextColor="#999"
                 keyboardType="numeric"
               />
             </View>
@@ -147,6 +154,8 @@ export default function Cadastro() {
                 style={styles.input} 
                 value={email} 
                 onChangeText={setEmail}
+                placeholder="seuemail@exemplo.com"
+                placeholderTextColor="#999"
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -158,6 +167,8 @@ export default function Cadastro() {
                 style={styles.input} 
                 value={senha} 
                 onChangeText={setSenha}
+                placeholder="Mínimo 6 caracteres"
+                placeholderTextColor="#999"
                 secureTextEntry
               />
             </View>
@@ -168,6 +179,8 @@ export default function Cadastro() {
                 style={styles.input} 
                 value={confirmarSenha} 
                 onChangeText={setConfirmarSenha}
+                placeholder="Repita sua senha"
+                placeholderTextColor="#999"
                 secureTextEntry
               />
             </View>

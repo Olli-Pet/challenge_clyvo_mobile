@@ -11,39 +11,85 @@ import {
   Image, 
   Alert, 
   KeyboardAvoidingView, 
-  Platform 
+  Platform,
+  ActivityIndicator
 } from "react-native";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../services/firebaseConfig"; // Certifique-se de exportar db (Firestore)
 
-import OndaTop from "@/components/Onda";
-import OndaBottom from "@/components/OndaBottom";
+import OndaTop from "../components/Onda";
+import OndaBottom from "../components/OndaBottom";
 
 export default function Index() {
-  const [email, setEmail] = useState("olli@gmail.com");
-  const [senha, setSenha] = useState("123");
+  // Inicializados vazios para input real do usuário
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
   const [tipoUsuario, setTipoUsuario] = useState<"tutor" | "vet">("tutor");
+  const [loading, setLoading] = useState(false);
 
   const corAtiva = tipoUsuario === "vet" ? "#66A6FA" : "#E7B84C";
 
   async function entrar() {
-    if (!email || !senha) {
-      Alert.alert("Erro", "Preencha tudo, diva!");
+    if (!email.trim() || !senha.trim()) {
+      Alert.alert("Atenção", "Por favor, preencha o e-mail e a senha.");
       return;
     }
 
-    const emailNormalizado = email.trim().toLowerCase();
+    setLoading(true);
 
-    if (tipoUsuario === "vet") {
-      if (emailNormalizado === "vet@gmail.com" && senha === "123") {
-        await AsyncStorage.setItem("@olli_user_logado", JSON.stringify({ uid: "vet1", nome: "Dr. André", crmv: "12345-SP", email: "vet@gmail.com", tipo: "vet" }));
-        router.push("/homevet");
+    try {
+      const emailNormalizado = email.trim().toLowerCase();
+      
+      // 1. Autentica no Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, emailNormalizado, senha);
+      const user = userCredential.user;
+
+      // 2. Busca o perfil retornado do Firestore (coleção 'users')
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+
+        // Garante que o usuário está tentando entrar pelo perfil correto
+        if (userData.tipo !== tipoUsuario) {
+          Alert.alert("Acesso Negado", `Esta conta está registrada como ${userData.tipo === "vet" ? "Veterinário" : "Responsável"}.`);
+          setLoading(false);
+          return;
+        }
+
+        // 3. Salva a sessão localmente
+        await AsyncStorage.setItem("@olli_user_logado", JSON.stringify({ uid: user.uid, ...userData }));
+
+        // 4. Redireciona conforme o tipo
+        if (userData.tipo === "vet") {
+          router.push("/homevet");
+        } else {
+          router.push("/Home");
+        }
       } else {
-        Alert.alert("Erro", "Veterinário não encontrado!");
+        Alert.alert("Erro", "Dados do usuário não encontrados no banco.");
       }
-    } else {
-      await AsyncStorage.setItem("@olli_user_logado", JSON.stringify({ uid: "user1", nome: "Olli", tipo: "tutor" }));
-      router.push("/home");
+
+    } catch (error: any) {
+      let mensagemErro = "Ocorreu um erro ao tentar entrar.";
+      
+      if (
+        error.code === "auth/invalid-credential" || 
+        error.code === "auth/user-not-found" || 
+        error.code === "auth/wrong-password"
+      ) {
+        mensagemErro = "E-mail ou senha incorretos!";
+      } else if (error.code === "auth/invalid-email") {
+        mensagemErro = "Formato de e-mail inválido!";
+      }
+
+      Alert.alert("Erro de Autenticação", mensagemErro);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -95,6 +141,7 @@ export default function Index() {
               style={[styles.input, { borderColor: corAtiva }]}
               value={email}
               onChangeText={setEmail}
+              placeholder="Digite seu e-mail"
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -106,15 +153,24 @@ export default function Index() {
               style={[styles.input, { borderColor: corAtiva }]}
               value={senha}
               onChangeText={setSenha}
+              placeholder="Digite sua senha"
               secureTextEntry
             />
           </View>
 
-          <TouchableOpacity style={[styles.button, { backgroundColor: corAtiva }]} onPress={entrar}>
-            <Text style={[styles.buttonText, { color: tipoUsuario === "vet" ? "#FFF" : "#000" }]}>Entrar</Text>
+          <TouchableOpacity 
+            style={[styles.button, { backgroundColor: corAtiva }]} 
+            onPress={entrar}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={tipoUsuario === "vet" ? "#FFF" : "#000"} />
+            ) : (
+              <Text style={[styles.buttonText, { color: tipoUsuario === "vet" ? "#FFF" : "#000" }]}>Entrar</Text>
+            )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.push(tipoUsuario === "vet" ? "/cadastrovet" : "/cadastro")}>
+          <TouchableOpacity onPress={() => router.push(tipoUsuario === "vet" ? "/cadastrovet" : "/Cadastro")}>
             <Text style={styles.link}>Não possui conta? Cadastre-se</Text>
           </TouchableOpacity>
         </ScrollView>
