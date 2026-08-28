@@ -4,6 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useNavigation } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { listarTutoresPorUid, obterSessao } from "../services/sessao";
+
 import ModalProntuarioVetCompleto from "@/components/ModalProntuarioVetCompleto";
 import ModalPerfilVet from "@/components/ModalPerfilVet";
 
@@ -17,11 +19,6 @@ interface Pet {
   nascimento: string;
   uidTutor: string;
   info: string;
-}
-
-interface Tutor {
-  uid: string;
-  nome: string;
 }
 
 export default function HomeVet() {
@@ -39,23 +36,23 @@ export default function HomeVet() {
     try {
       setCarregando(true);
 
-      const vetRaw = await AsyncStorage.getItem("@olli_user_logado");
-      if (vetRaw) {
-        const vetDados = JSON.parse(vetRaw);
+      const vetDados = await obterSessao();
+      if (vetDados) {
         setNomeVet(vetDados.nome || "Médico(a)");
       }
 
       const petsRaw = await AsyncStorage.getItem("@olli_pets");
-      const tutoresRaw = await AsyncStorage.getItem("@olli_usuarios_cadastrados");
-
       const listaPets: Pet[] = petsRaw ? JSON.parse(petsRaw) : [];
-      const listaTutores: Tutor[] = tutoresRaw ? JSON.parse(tutoresRaw) : [];
+
+      // Os tutores vêm do Firestore (e não mais do AsyncStorage, que guardava
+      // veterinários sob essa chave e fazia todo pet cair em "Desconhecido").
+      const tutoresPorUid = await listarTutoresPorUid();
 
       const petsComTutor = listaPets.map(pet => {
-        const tutor = listaTutores.find(t => t.uid === pet.uidTutor);
+        const tutor = tutoresPorUid[pet.uidTutor];
         return {
           ...pet,
-          nomeTutor: tutor ? tutor.nome : "Responsável Desconhecido"
+          nomeTutor: tutor?.nome || "Responsável Desconhecido"
         };
       });
 

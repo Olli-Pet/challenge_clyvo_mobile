@@ -1,69 +1,137 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { auth, db } from "../services/firebaseConfig";
+import { salvarSessao } from "../services/sessao";
 
 export default function CadastroVet() {
   const [nome, setNome] = useState("");
   const [crmv, setCrmv] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleCadastro = async () => {
-    if (!nome || !crmv || !email || !senha) {
+    if (!nome.trim() || !crmv.trim() || !email.trim() || !senha.trim()) {
       Alert.alert("Erro", "Preencha os dados médicos!");
       return;
     }
 
-    const novoVet = { uid: Date.now().toString(), nome, crmv, email, senha, tipo: "vet" };
+    if (senha.length < 6) {
+      Alert.alert("Erro", "A senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
 
-    const existentesRaw = await AsyncStorage.getItem("@olli_usuarios_cadastrados");
-    const existentes = existentesRaw ? JSON.parse(existentesRaw) : [];
-    existentes.push(novoVet);
-    
-    await AsyncStorage.setItem("@olli_usuarios_cadastrados", JSON.stringify(existentes));
-    
-    Alert.alert("Sucesso", "Doutor(a), seu perfil foi criado!", [
-      { text: "Ir para Login", onPress: () => router.replace("/") }
-    ]);
+    setLoading(true);
+
+    try {
+      const emailNormalizado = email.trim().toLowerCase();
+
+      // 1. Cria a conta no Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, emailNormalizado, senha);
+      const user = userCredential.user;
+
+      // 2. Monta o perfil. O campo 'tipo' é o que o login usa para direcionar
+      //    o veterinário para a home clínica. A senha NÃO é gravada aqui:
+      //    quem cuida dela é o Firebase Auth.
+      const vetData = {
+        uid: user.uid,
+        tipo: "vet" as const,
+        nome: nome.trim(),
+        crmv: crmv.trim(),
+        email: emailNormalizado,
+        createdAt: serverTimestamp()
+      };
+
+      // 3. Salva na coleção unificada 'users', usando o UID gerado pelo Auth
+      await setDoc(doc(db, "users", user.uid), vetData);
+
+      // 4. Grava a sessão localmente. createdAt vira Date aqui porque
+      //    serverTimestamp() é um marcador resolvido só pelo Firestore.
+      await salvarSessao({ ...vetData, createdAt: new Date() });
+
+      Alert.alert("Sucesso", "Doutor(a), seu perfil foi criado!", [
+        { text: "Continuar", onPress: () => router.replace("/homevet") }
+      ]);
+
+    } catch (error: any) {
+      console.error("Erro no cadastro do veterinário:", error);
+      let mensagemErro = "Não foi possível realizar o cadastro.";
+
+      if (error.code === "auth/email-already-in-use") {
+        mensagemErro = "Este e-mail já está em uso por outra conta. Tente fazer login ou use outro e-mail.";
+      } else if (error.code === "auth/invalid-email") {
+        mensagemErro = "Formato de e-mail inválido.";
+      } else if (error.code === "auth/weak-password") {
+        mensagemErro = "A senha escolhida é muito fraca.";
+      }
+
+      Alert.alert("Erro de Cadastro", mensagemErro);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <TouchableOpacity style={styles.back} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#66A6FA" />
-          <Text style={styles.backText}>Voltar</Text>
-        </TouchableOpacity>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <TouchableOpacity style={styles.back} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#66A6FA" />
+            <Text style={styles.backText}>Voltar</Text>
+          </TouchableOpacity>
 
-        <Ionicons name="medical" size={60} color="#66A6FA" style={{ alignSelf: "center" }} />
-        <Text style={styles.title}>Cadastro Médico Veterinário</Text>
+          <Ionicons name="medical" size={60} color="#66A6FA" style={{ alignSelf: "center" }} />
+          <Text style={styles.title}>Cadastro Médico Veterinário</Text>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Nome Completo</Text>
-          <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Dr(a). ..." />
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nome Completo</Text>
+            <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Dr(a). ..." />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>CRMV</Text>
-          <TextInput style={styles.input} value={crmv} onChangeText={setCrmv} placeholder="00000-UF" />
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>CRMV</Text>
+            <TextInput style={styles.input} value={crmv} onChangeText={setCrmv} placeholder="00000-UF" />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>E-mail Profissional</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" />
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>E-mail Profissional</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Senha de Acesso</Text>
-          <TextInput style={styles.input} value={senha} onChangeText={setSenha} secureTextEntry />
-        </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Senha de Acesso</Text>
+            <TextInput
+              style={styles.input}
+              value={senha}
+              onChangeText={setSenha}
+              placeholder="Mínimo 6 caracteres"
+              secureTextEntry
+            />
+          </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleCadastro}>
-          <Text style={styles.buttonText}>Finalizar Cadastro</Text>
-        </TouchableOpacity>
-      </ScrollView>
+          <TouchableOpacity style={styles.button} onPress={handleCadastro} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.buttonText}>Finalizar Cadastro</Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

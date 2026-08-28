@@ -4,7 +4,7 @@ import {
   TextInput, Alert, ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { atualizarPerfil, obterSessao } from "../services/sessao";
 
 interface Vet {
   uid?: string;
@@ -28,9 +28,8 @@ export default function ModalPerfilVet({ visible, onClose }: ModalPerfilVetProps
 
   useEffect(() => {
     if (visible) {
-      AsyncStorage.getItem("@olli_user_logado").then((raw) => {
-        if (raw) {
-          const dados: Vet = JSON.parse(raw);
+      obterSessao().then((dados) => {
+        if (dados) {
           setVet(dados);
           setNome(dados.nome || "");
           setCrmv(dados.crmv || "");
@@ -47,11 +46,22 @@ export default function ModalPerfilVet({ visible, onClose }: ModalPerfilVetProps
       return;
     }
 
-    const atualizado = { ...vet, nome: nome.trim(), crmv: crmv.trim(), email: email.trim() };
-    await AsyncStorage.setItem("@olli_user_logado", JSON.stringify(atualizado));
-    setVet(atualizado);
-    setEditando(false);
-    Alert.alert("Sucesso", "Perfil atualizado!");
+    try {
+      // Grava no Firestore E na sessão local, mantendo os dois em sincronia:
+      // assim a alteração acompanha o vet em qualquer dispositivo.
+      const atualizado = await atualizarPerfil({
+        nome: nome.trim(),
+        crmv: crmv.trim(),
+        email: email.trim(),
+      });
+
+      setVet(atualizado as Vet);
+      setEditando(false);
+      Alert.alert("Sucesso", "Perfil atualizado!");
+    } catch (erro) {
+      console.error("Erro ao atualizar o perfil do veterinário:", erro);
+      Alert.alert("Erro", "Não foi possível salvar as alterações. Tente novamente.");
+    }
   };
 
   return (

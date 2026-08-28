@@ -1,5 +1,15 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getApp, getApps, initializeApp } from "firebase/app";
+// Importado de "@firebase/auth" (e não de "firebase/auth") de propósito:
+// só esse pacote expõe a condição "react-native", onde vive o
+// getReactNativePersistence. O wrapper "firebase/auth" resolve sempre
+// para o build web, que não tem essa função.
+import {
+  Auth,
+  getAuth,
+  getReactNativePersistence,
+  initializeAuth,
+} from "@firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -12,9 +22,20 @@ const firebaseConfig = {
   measurementId: "G-8M8MBC3BJ4"
 };
 
-//Inicializa o Firebase
-const app = initializeApp(firebaseConfig);
+//Inicializa o Firebase (evita re-inicializar no hot reload do Expo)
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+//Auth com persistência em AsyncStorage: mantém o usuário logado ao fechar o app.
+//O initializeAuth só pode rodar uma vez por app, por isso o fallback no catch.
+let authInstance: Auth;
+try {
+  authInstance = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+} catch {
+  authInstance = getAuth(app);
+}
 
 //Exporta os serviços que o app precisa
-export const auth = getAuth(app);
+export const auth = authInstance;
 export const db = getFirestore(app);

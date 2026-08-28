@@ -15,11 +15,11 @@ import {
   ActivityIndicator
 } from "react-native";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "../services/firebaseConfig"; // Ajuste o caminho se necessário
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { auth, db } from "../services/firebaseConfig";
+import { salvarSessao } from "../services/sessao";
 
 import OndaTop from "../components/Onda";
 import OndaBottom from "../components/OndaBottom";
@@ -59,23 +59,24 @@ export default function Cadastro() {
       const userCredential = await createUserWithEmailAndPassword(auth, emailNormalizado, senha);
       const user = userCredential.user;
 
-      // 2. Prepara os dados exatamente com a mesma estrutura da sua imagem
+      // 2. Prepara os dados. O campo 'tipo' é o que o login usa para saber
+      //    se a conta é de responsável ou de veterinário.
       const tutorData = {
         uid: user.uid,
+        tipo: "tutor" as const,
         nome: nome.trim(),
         cpf: cpf.trim(),
         email: emailNormalizado,
-        createdAt: new Date()
+        createdAt: serverTimestamp()
       };
 
-      // 3. Salva na coleção 'tutores' usand o UID do usuário gerado pelo Auth
-      await setDoc(doc(db, "tutores", user.uid), tutorData);
+      // 3. Salva na coleção unificada 'users', usando o UID gerado pelo Auth
+      await setDoc(doc(db, "users", user.uid), tutorData);
 
-      // 4. Grava a sessão localmente para manter o app logado
-      await AsyncStorage.setItem("@olli_user_logado", JSON.stringify({
-        ...tutorData,
-        tipo: "tutor"
-      }));
+      // 4. Grava a sessão localmente para manter o app logado.
+      //    createdAt vira Date aqui: serverTimestamp() é um marcador que só
+      //    o Firestore resolve, e não sobrevive ao JSON da sessão.
+      await salvarSessao({ ...tutorData, createdAt: new Date() });
 
       Alert.alert("Sucesso! ✨", "Cadastro realizado com sucesso!", [
         {

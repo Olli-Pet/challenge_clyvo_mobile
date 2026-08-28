@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { 
   View, 
   Text, 
@@ -15,10 +15,9 @@ import {
   ActivityIndicator
 } from "react-native";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../services/firebaseConfig"; // Certifique-se de exportar db (Firestore)
+import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../services/firebaseConfig";
+import { carregarPerfil, salvarSessao } from "../services/sessao";
 
 import OndaTop from "../components/Onda";
 import OndaBottom from "../components/OndaBottom";
@@ -29,8 +28,51 @@ export default function Index() {
   const [senha, setSenha] = useState("");
   const [tipoUsuario, setTipoUsuario] = useState<"tutor" | "vet">("tutor");
   const [loading, setLoading] = useState(false);
+  // Enquanto verificamos se já existe sessão salva, evitamos piscar o formulário.
+  const [verificandoSessao, setVerificandoSessao] = useState(true);
 
   const corAtiva = tipoUsuario === "vet" ? "#66A6FA" : "#E7B84C";
+
+  // Auto-login: o Firebase Auth restaura a sessão do AsyncStorage ao abrir o
+  // app. Se já houver usuário autenticado, vai direto para a home dele.
+  useEffect(() => {
+    let ativo = true;
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        if (ativo) setVerificandoSessao(false);
+        return;
+      }
+
+      try {
+        const perfil = await carregarPerfil(user.uid);
+        if (!ativo) return;
+
+        if (perfil) {
+          await salvarSessao(perfil);
+          router.replace(perfil.tipo === "vet" ? "/homevet" : "/Home");
+          return;
+        }
+      } catch (erro) {
+        console.warn("Falha ao restaurar a sessão:", erro);
+      }
+
+      if (ativo) setVerificandoSessao(false);
+    });
+
+    return () => {
+      ativo = false;
+      unsubscribe();
+    };
+  }, []);
+
+  if (verificandoSessao) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centralizado]}>
+        <ActivityIndicator size="large" color={corAtiva} />
+      </SafeAreaView>
+    );
+  }
 
   async function entrar() {
     if (!email.trim() || !senha.trim()) {
@@ -47,32 +89,30 @@ export default function Index() {
       const userCredential = await signInWithEmailAndPassword(auth, emailNormalizado, senha);
       const user = userCredential.user;
 
-      // 2. Busca o perfil retornado do Firestore (coleção 'users')
-      const userDocRef = doc(db, "users", user.uid);
-      const userDocSnap = await getDoc(userDocRef);
+      // 2. Busca o perfil. Cobre tanto a coleção nova ('users') quanto as
+      //    contas antigas em 'tutores', que são migradas e tratadas como tutor.
+      const perfil = await carregarPerfil(user.uid);
 
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
-
-        // Garante que o usuário está tentando entrar pelo perfil correto
-        if (userData.tipo !== tipoUsuario) {
-          Alert.alert("Acesso Negado", `Esta conta está registrada como ${userData.tipo === "vet" ? "Veterinário" : "Responsável"}.`);
-          setLoading(false);
-          return;
-        }
-
-        // 3. Salva a sessão localmente
-        await AsyncStorage.setItem("@olli_user_logado", JSON.stringify({ uid: user.uid, ...userData }));
-
-        // 4. Redireciona conforme o tipo
-        if (userData.tipo === "vet") {
-          router.push("/homevet");
-        } else {
-          router.push("/Home");
-        }
-      } else {
+      if (!perfil) {
         Alert.alert("Erro", "Dados do usuário não encontrados no banco.");
+        return;
       }
+
+      // Garante que o usuário está tentando entrar pelo perfil correto
+      if (perfil.tipo !== tipoUsuario) {
+        Alert.alert(
+          "Acesso Negado",
+          `Esta conta está registrada como ${perfil.tipo === "vet" ? "Veterinário" : "Responsável"}.`
+        );
+        return;
+      }
+
+      // 3. Salva a sessão localmente (fica ativa para as demais telas)
+      await salvarSessao(perfil);
+
+      // 4. Redireciona conforme o tipo. Usa replace para o botão "voltar"
+      //    não retornar à tela de login já autenticado.
+      router.replace(perfil.tipo === "vet" ? "/homevet" : "/Home");
 
     } catch (error: any) {
       let mensagemErro = "Ocorreu um erro ao tentar entrar.";
@@ -181,6 +221,7 @@ export default function Index() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F2F2F2" },
+  centralizado: { justifyContent: "center", alignItems: "center" },
   content: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 28, paddingTop: 60, paddingBottom: 40 },
   logoContainer: { marginBottom: 10, alignItems: 'center' },
   logoImage: { width: 220, height: 120 },
