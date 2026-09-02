@@ -17,7 +17,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { criarPet, Especie, paraDataIso } from "@/services/api/petsApi";
+import { ErroApi } from "@/services/api/clienteApi";
 
 import Header from "@/components/Header";
 import BotaoIA from "@/components/BotaoIA";
@@ -29,6 +30,8 @@ export default function AdicionarPet() {
   const [cor, setCor] = useState("");
   const [porte, setPorte] = useState("");
   const [sexo, setSexo] = useState("");
+  // A API so aceita CAO ou GATO, e o campo e obrigatorio no cadastro.
+  const [especie, setEspecie] = useState<Especie>("CAO");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -64,41 +67,44 @@ export default function AdicionarPet() {
       return;
     }
 
+    // A data de nascimento agora é obrigatória: a clínica usa a idade do pet
+    // como modificador da triagem (filhote e idoso mudam a classificação).
+    if (!paraDataIso(nascimento)) {
+      Alert.alert("Ops!", "Informe a data de nascimento no formato dd/mm/aaaa.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const usuarioLogadoRaw = await AsyncStorage.getItem("@olli_user_logado");
-      const usuarioLogado = usuarioLogadoRaw ? JSON.parse(usuarioLogadoRaw) : null;
-      
-      const uidTutorAtivo = usuarioLogado ? usuarioLogado.uid : "user_olli_123";
-
-      const petsExistentesRaw = await AsyncStorage.getItem("@olli_pets");
-      const listaPets = petsExistentesRaw ? JSON.parse(petsExistentesRaw) : [];
-
-      const novoPet = {
-        id: `pet_${Date.now()}`,
+      const petCriado = await criarPet({
         nome,
         raca,
-        sexo: sexo || "Não informado",
-        porte,
-        nascimento: nascimento || "Não informado",
+        especie,
+        nascimento,
         cor,
+        porte,
+        sexo: sexo || "Não informado",
         info: info || "Este pet não possui uma biografia cadastrada.",
-        uidTutor: uidTutorAtivo,
-        createdAt: new Date().toISOString(),
-      };
+      });
 
-      listaPets.push(novoPet);
-      await AsyncStorage.setItem("@olli_pets", JSON.stringify(listaPets));
-
-      Alert.alert("Sucesso!", `${nome} foi adicionado à sua família! 🐾`);
-      router.replace("/home"); 
+      Alert.alert("Sucesso!", `${petCriado.nome} foi adicionado à sua família! 🐾`);
+      router.replace("/Home");
     } catch (error: any) {
-      console.error(error);
-      Alert.alert("Erro ao salvar", "Não conseguimos cadastrar o pet localmente.");
+      console.error("Erro ao cadastrar o pet:", error);
+      Alert.alert(
+        "Erro ao salvar",
+        error instanceof ErroApi
+          ? error.message
+          : "Não conseguimos cadastrar o pet. Tente novamente."
+      );
     } finally {
       setLoading(false);
     }
+  };
+
+  const alternarEspecie = () => {
+    setEspecie((atual) => (atual === "CAO" ? "GATO" : "CAO"));
   };
 
   const alternarSexo = () => {
@@ -147,7 +153,13 @@ export default function AdicionarPet() {
             <Text style={styles.label}>Nome completo</Text>
             <TextInput style={styles.input} value={nome} onChangeText={setNome} />
 
-            <Text style={styles.label}>Raça (Dog, Cavalo, Ornitorrinco)</Text>
+            <Text style={styles.label}>Espécie</Text>
+            <TouchableOpacity style={styles.selectInput} onPress={alternarEspecie}>
+              <Text>{especie === "CAO" ? "Cão" : "Gato"}</Text>
+              <Ionicons name="chevron-down" size={20} color="black" />
+            </TouchableOpacity>
+
+            <Text style={styles.label}>Raça</Text>
             <TextInput 
               style={styles.input} 
               value={raca} 
@@ -157,7 +169,7 @@ export default function AdicionarPet() {
 
             <View style={styles.row}>
               <View style={styles.flex1}>
-                <Text style={styles.label}>Data de nascimento{"\n"}<Text style={styles.subLabel}>(opcional)</Text></Text>
+                <Text style={styles.label}>Data de nascimento</Text>
                 <TextInput 
                   style={styles.input} 
                   value={nascimento} 

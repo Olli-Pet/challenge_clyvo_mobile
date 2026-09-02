@@ -10,17 +10,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// Tipagem para o componente receber os dados do pet dinamicamente
-interface Pet {
-  id: string;
-  nome: string;
-  raca: string;
-  cor: string;
-  porte: string;
-  sexo: string;
-  nascimento: string;
-  info: string;
-}
+// O pet vem do banco da clinica; a tipagem e a mesma do servico.
+import { Pet } from "@/services/api/petsApi";
 
 interface ModalProntuarioProps {
   visible: boolean;

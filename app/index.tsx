@@ -9,7 +9,6 @@ import {
   StatusBar, 
   ScrollView, 
   Image, 
-  Alert, 
   KeyboardAvoidingView, 
   Platform,
   ActivityIndicator
@@ -18,6 +17,8 @@ import { router } from "expo-router";
 import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../services/firebaseConfig";
 import { carregarPerfil, salvarSessao } from "../services/sessao";
+import { garantirCadastroNaClinica } from "../services/api/autenticacaoApi";
+import { avisar } from "../services/avisar";
 
 import OndaTop from "../components/Onda";
 import OndaBottom from "../components/OndaBottom";
@@ -76,7 +77,7 @@ export default function Index() {
 
   async function entrar() {
     if (!email.trim() || !senha.trim()) {
-      Alert.alert("Atenção", "Por favor, preencha o e-mail e a senha.");
+      avisar("Atenção", "Por favor, preencha o e-mail e a senha.");
       return;
     }
 
@@ -94,13 +95,13 @@ export default function Index() {
       const perfil = await carregarPerfil(user.uid);
 
       if (!perfil) {
-        Alert.alert("Erro", "Dados do usuário não encontrados no banco.");
+        avisar("Erro", "Dados do usuário não encontrados no banco.");
         return;
       }
 
       // Garante que o usuário está tentando entrar pelo perfil correto
       if (perfil.tipo !== tipoUsuario) {
-        Alert.alert(
+        avisar(
           "Acesso Negado",
           `Esta conta está registrada como ${perfil.tipo === "vet" ? "Veterinário" : "Responsável"}.`
         );
@@ -110,7 +111,14 @@ export default function Index() {
       // 3. Salva a sessão localmente (fica ativa para as demais telas)
       await salvarSessao(perfil);
 
-      // 4. Redireciona conforme o tipo. Usa replace para o botão "voltar"
+      // 4. Revalida o vínculo com a clínica (API Java). É idempotente, então
+      //    cobre também os tutores cadastrados antes da integração existir.
+      //    Falha aqui não impede o login: a API é um complemento do Firebase.
+      if (perfil.tipo === "tutor" && perfil.cpf) {
+        await garantirCadastroNaClinica(perfil.cpf);
+      }
+
+      // 5. Redireciona conforme o tipo. Usa replace para o botão "voltar"
       //    não retornar à tela de login já autenticado.
       router.replace(perfil.tipo === "vet" ? "/homevet" : "/Home");
 
@@ -125,9 +133,16 @@ export default function Index() {
         mensagemErro = "E-mail ou senha incorretos!";
       } else if (error.code === "auth/invalid-email") {
         mensagemErro = "Formato de e-mail inválido!";
+      } else if (error.code === "permission-denied") {
+        // Autenticou, mas o Firestore recusou a leitura do perfil.
+        mensagemErro =
+          "Entramos na sua conta, mas não conseguimos ler seu perfil. " +
+          "Publique as regras do Firestore (arquivo firestore.rules).";
+      } else if (error.code === "auth/network-request-failed") {
+        mensagemErro = "Sem conexão com o Firebase. Verifique sua internet.";
       }
 
-      Alert.alert("Erro de Autenticação", mensagemErro);
+      avisar("Erro de Autenticação", mensagemErro);
     } finally {
       setLoading(false);
     }

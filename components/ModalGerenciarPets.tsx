@@ -1,15 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import NativeAsyncStorage from "@react-native-async-storage/async-storage";
-
-interface Pet {
-  id: string;
-  nome: string;
-  raca: string;
-  info: string;
-  uidTutor: string;
-}
+import { atualizarPet, listarMeusPets, Pet, removerPet } from "@/services/api/petsApi";
+import { ErroApi } from "@/services/api/clienteApi";
 
 interface ModalGerenciarPetsProps {
   visible: boolean;
@@ -18,43 +11,53 @@ interface ModalGerenciarPetsProps {
 
 export default function ModalGerenciarPets({ visible, onClose }: ModalGerenciarPetsProps) {
   const [pets, setPets] = useState<Pet[]>([]);
-  const [petEditando, setPetEditando] = useState<string | null>(null);
+  const [petEditando, setPetEditando] = useState<number | null>(null);
   const [novaInfo, setNovaInfo] = useState("");
 
   const carregarPets = async () => {
-    const userRaw = await NativeAsyncStorage.getItem("@olli_user_logado");
-    const petsRaw = await NativeAsyncStorage.getItem("@olli_pets");
-    if (userRaw && petsRaw) {
-      const user = JSON.parse(userRaw);
-      const todos: Pet[] = JSON.parse(petsRaw);
-      setPets(todos.filter(p => p.uidTutor === user.uid));
+    try {
+      setPets(await listarMeusPets());
+    } catch (erro) {
+      console.error("Erro ao carregar os pets:", erro);
+      Alert.alert(
+        "Erro",
+        erro instanceof ErroApi ? erro.message : "Não foi possível carregar seus pets."
+      );
     }
   };
 
   useEffect(() => { if (visible) carregarPets(); }, [visible]);
 
-  const salvarEdicao = async (id: string) => {
-    const petsRaw = await NativeAsyncStorage.getItem("@olli_pets");
-    if (petsRaw) {
-      const todos: Pet[] = JSON.parse(petsRaw);
-      const atualizados = todos.map(p => p.id === id ? { ...p, info: novaInfo } : p);
-      await NativeAsyncStorage.setItem("@olli_pets", JSON.stringify(atualizados));
+  const salvarEdicao = async (pet: Pet) => {
+    try {
+      // O PUT da API substitui o pet inteiro, então os demais campos são
+      // reenviados junto com a bio editada.
+      await atualizarPet(pet.id, { ...pet, info: novaInfo });
       setPetEditando(null);
-      carregarPets();
+      await carregarPets();
       Alert.alert("Sucesso", "Informações do pet atualizadas!");
+    } catch (erro) {
+      console.error("Erro ao atualizar o pet:", erro);
+      Alert.alert(
+        "Erro",
+        erro instanceof ErroApi ? erro.message : "Não foi possível salvar as alterações."
+      );
     }
   };
 
-  const deletarPet = (id: string, nome: string) => {
+  const deletarPet = (id: number, nome: string) => {
     Alert.alert("Excluir Pet", `Tem certeza que deseja apagar os registros de ${nome}?`, [
       { text: "Cancelar", style: "cancel" },
       { text: "Apagar", style: "destructive", onPress: async () => {
-          const petsRaw = await NativeAsyncStorage.getItem("@olli_pets");
-          if (petsRaw) {
-            const todos: Pet[] = JSON.parse(petsRaw);
-            const filtrados = todos.filter(p => p.id !== id);
-            await NativeAsyncStorage.setItem("@olli_pets", JSON.stringify(filtrados));
-            carregarPets();
+          try {
+            await removerPet(id);
+            await carregarPets();
+          } catch (erro) {
+            console.error("Erro ao excluir o pet:", erro);
+            Alert.alert(
+              "Erro",
+              erro instanceof ErroApi ? erro.message : "Não foi possível excluir o pet."
+            );
           }
         }}
     ]);
@@ -90,7 +93,7 @@ export default function ModalGerenciarPets({ visible, onClose }: ModalGerenciarP
                 {petEditando === pet.id ? (
                   <View style={styles.editSection}>
                     <TextInput style={styles.input} value={novaInfo} onChangeText={setNovaInfo} multiline />
-                    <TouchableOpacity style={styles.saveBtn} onPress={() => salvarEdicao(pet.id)}>
+                    <TouchableOpacity style={styles.saveBtn} onPress={() => salvarEdicao(pet)}>
                       <Text style={styles.saveText}>Salvar Bio</Text>
                     </TouchableOpacity>
                   </View>

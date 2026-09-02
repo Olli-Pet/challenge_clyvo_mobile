@@ -4,19 +4,8 @@ import {
   StyleSheet, Image, TextInput, Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-interface Pet {
-  id: string;
-  nome: string;
-  raca: string;
-  cor: string;
-  porte: string;
-  sexo: string;
-  nascimento: string;
-  uidTutor: string;
-  info: string;
-}
+import { atualizarPet, buscarPet, Pet } from "@/services/api/petsApi";
+import { ErroApi } from "@/services/api/clienteApi";
 
 interface PetComTutor extends Pet {
   nomeTutor: string;
@@ -55,22 +44,26 @@ export default function ModalProntuarioVetCompleto({
     }
 
     try {
-      const petsRaw = await AsyncStorage.getItem("@olli_pets");
-      if (petsRaw) {
-        const todos: Pet[] = JSON.parse(petsRaw);
-        const data = new Date().toLocaleDateString("pt-BR");
-        const novoHistorico = `[${data} - Med Vet]: ${novaEvolucao.trim()}\n\n${pet.info || ""}`.trim();
+      const data = new Date().toLocaleDateString("pt-BR");
 
-        const atualizados = todos.map(p =>
-          p.id === pet.id ? { ...p, info: novoHistorico } : p
-        );
+      // Relê o pet antes de escrever, para não sobrescrever uma evolução
+      // registrada por outro atendimento enquanto esta tela estava aberta.
+      const atual = await buscarPet(pet.id);
+      const novoHistorico =
+        `[${data} - Med Vet]: ${novaEvolucao.trim()}
 
-        await AsyncStorage.setItem("@olli_pets", JSON.stringify(atualizados));
-        Alert.alert("Sucesso", "Prontuário atualizado!");
-        onClose();
-      }
-    } catch {
-      Alert.alert("Erro", "Não foi possível salvar.");
+${atual.info || ""}`.trim();
+
+      await atualizarPet(pet.id, { ...atual, info: novoHistorico });
+
+      Alert.alert("Sucesso", "Prontuário atualizado!");
+      onClose();
+    } catch (error) {
+      console.error("Erro ao salvar o prontuário:", error);
+      Alert.alert(
+        "Erro",
+        error instanceof ErroApi ? error.message : "Não foi possível salvar."
+      );
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -7,6 +7,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../services/firebaseConfig";
 import { salvarSessao } from "../services/sessao";
+import { avisar, avisarEEntao } from "../services/avisar";
 
 export default function CadastroVet() {
   const [nome, setNome] = useState("");
@@ -17,12 +18,12 @@ export default function CadastroVet() {
 
   const handleCadastro = async () => {
     if (!nome.trim() || !crmv.trim() || !email.trim() || !senha.trim()) {
-      Alert.alert("Erro", "Preencha os dados médicos!");
+      avisar("Erro", "Preencha os dados médicos!");
       return;
     }
 
     if (senha.length < 6) {
-      Alert.alert("Erro", "A senha precisa ter pelo menos 6 caracteres.");
+      avisar("Erro", "A senha precisa ter pelo menos 6 caracteres.");
       return;
     }
 
@@ -54,9 +55,9 @@ export default function CadastroVet() {
       //    serverTimestamp() é um marcador resolvido só pelo Firestore.
       await salvarSessao({ ...vetData, createdAt: new Date() });
 
-      Alert.alert("Sucesso", "Doutor(a), seu perfil foi criado!", [
-        { text: "Continuar", onPress: () => router.replace("/homevet") }
-      ]);
+      avisarEEntao("Sucesso", "Doutor(a), seu perfil foi criado!", () =>
+        router.replace("/homevet")
+      );
 
     } catch (error: any) {
       console.error("Erro no cadastro do veterinário:", error);
@@ -68,9 +69,13 @@ export default function CadastroVet() {
         mensagemErro = "Formato de e-mail inválido.";
       } else if (error.code === "auth/weak-password") {
         mensagemErro = "A senha escolhida é muito fraca.";
+      } else if (error.code === "permission-denied") {
+        mensagemErro =
+          "A conta foi criada, mas não conseguimos salvar seu perfil. " +
+          "Publique as regras do Firestore (arquivo firestore.rules) e entre pelo login.";
       }
 
-      Alert.alert("Erro de Cadastro", mensagemErro);
+      avisar("Erro de Cadastro", mensagemErro);
     } finally {
       setLoading(false);
     }

@@ -20,6 +20,9 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../services/firebaseConfig";
 import { salvarSessao } from "../services/sessao";
+import { apenasDigitos, garantirCadastroNaClinica } from "../services/api/autenticacaoApi";
+
+import { avisar, avisarEEntao } from "../services/avisar";
 
 import OndaTop from "../components/Onda";
 import OndaBottom from "../components/OndaBottom";
@@ -36,17 +39,17 @@ export default function Cadastro() {
 
   const handleCadastro = async () => {
     if (!nome.trim() || !cpf.trim() || !email.trim() || !senha.trim()) {
-      Alert.alert("Atenção", "Preencha todos os campos obrigatórios!");
+      avisar("Atenção", "Preencha todos os campos obrigatórios!");
       return;
     }
 
     if (senha !== confirmarSenha) {
-      Alert.alert("Erro", "As senhas não conferem!");
+      avisar("Erro", "As senhas não conferem!");
       return;
     }
 
     if (senha.length < 6) {
-      Alert.alert("Erro", "A senha precisa ter pelo menos 6 caracteres.");
+      avisar("Erro", "A senha precisa ter pelo menos 6 caracteres.");
       return;
     }
 
@@ -54,6 +57,8 @@ export default function Cadastro() {
 
     try {
       const emailNormalizado = email.trim().toLowerCase();
+      // A API da clinica exige o CPF com 11 digitos crus, sem pontos nem tracos.
+      const cpfNormalizado = apenasDigitos(cpf);
 
       // 1. Cria a conta no Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, emailNormalizado, senha);
@@ -65,7 +70,7 @@ export default function Cadastro() {
         uid: user.uid,
         tipo: "tutor" as const,
         nome: nome.trim(),
-        cpf: cpf.trim(),
+        cpf: cpfNormalizado,
         email: emailNormalizado,
         createdAt: serverTimestamp()
       };
@@ -78,12 +83,14 @@ export default function Cadastro() {
       //    o Firestore resolve, e não sobrevive ao JSON da sessão.
       await salvarSessao({ ...tutorData, createdAt: new Date() });
 
-      Alert.alert("Sucesso! ✨", "Cadastro realizado com sucesso!", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/Home")
-        }
-      ]);
+      // 5. Vincula a conta a clinica (API Java), que passa a conhecer este tutor
+      //    pelo firebase_uid. Se a API estiver fora do ar o cadastro nao falha:
+      //    o vinculo e idempotente e sera refeito no proximo login.
+      await garantirCadastroNaClinica(cpfNormalizado);
+
+      avisarEEntao("Sucesso! ✨", "Cadastro realizado com sucesso!", () =>
+        router.replace("/Home")
+      );
 
     } catch (error: any) {
       console.error("Erro no cadastro:", error);
@@ -95,9 +102,17 @@ export default function Cadastro() {
         mensagemErro = "Formato de e-mail inválido.";
       } else if (error.code === "auth/weak-password") {
         mensagemErro = "A senha escolhida é muito fraca.";
+      } else if (error.code === "permission-denied") {
+        // A conta foi criada no Authentication, mas o perfil não pôde ser
+        // gravado: as regras do Firestore estão negando a escrita.
+        mensagemErro =
+          "A conta foi criada, mas não conseguimos salvar seu perfil. " +
+          "Publique as regras do Firestore (arquivo firestore.rules) e entre pelo login.";
+      } else if (error.code === "auth/network-request-failed") {
+        mensagemErro = "Sem conexão com o Firebase. Verifique sua internet.";
       }
 
-      Alert.alert("Erro de Cadastro", mensagemErro);
+      avisar("Erro de Cadastro", mensagemErro);
     } finally {
       setLoading(false);
     }

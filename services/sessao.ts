@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { collection, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 
 /**
@@ -137,32 +137,6 @@ export async function sincronizarSessao(): Promise<UsuarioSessao | null> {
     await salvarSessao(perfil);
   }
   return perfil;
-}
-
-/**
- * Lista os tutores cadastrados, indexados por uid.
- *
- * Usado pela home do veterinário para exibir o nome do responsável de cada
- * pet. Consulta as duas coleções: a nova ('users', filtrando por tipo) e a
- * legada ('tutores'), já que contas antigas só migram quando fazem login.
- */
-export async function listarTutoresPorUid(): Promise<Record<string, UsuarioSessao>> {
-  const porUid: Record<string, UsuarioSessao> = {};
-
-  const registrar = (uid: string, dados: any) => {
-    // A coleção nova tem prioridade: é onde ficam os dados mais recentes.
-    porUid[uid] = { ...dados, uid, tipo: "tutor" };
-  };
-
-  const [snapLegado, snapNovo] = await Promise.all([
-    getDocs(collection(db, COLECAO_TUTORES_LEGADO)),
-    getDocs(query(collection(db, COLECAO_USUARIOS), where("tipo", "==", "tutor"))),
-  ]);
-
-  snapLegado.forEach((documento) => registrar(documento.id, documento.data()));
-  snapNovo.forEach((documento) => registrar(documento.id, documento.data()));
-
-  return porUid;
 }
 
 /** Encerra a sessão: sai do Firebase Auth e limpa os dados locais. */

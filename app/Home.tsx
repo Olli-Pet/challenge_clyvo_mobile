@@ -3,7 +3,8 @@ import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, Sta
 import { Ionicons } from "@expo/vector-icons";
 import { router, useNavigation } from "expo-router";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { listarMeusPets, Pet } from "@/services/api/petsApi";
+import { obterSessao } from "@/services/sessao";
 
 import Header from "@/components/Header";
 import PetCircle from "@/components/PetCircle";
@@ -11,18 +12,6 @@ import CardEventos from "@/components/CardEventos";
 import BotaoIA from "@/components/BotaoIA";
 
 import ModalDescricaoEvento from "@/components/ModalDescricaoEvento";
-
-interface Pet {
-  id: string;
-  nome: string;
-  raca: string;
-  cor: string;
-  porte: string;
-  sexo: string;
-  nascimento: string;
-  info: string;
-  uidTutor: string;
-}
 
 interface EventoSelecionado {
   title: string;
@@ -46,22 +35,18 @@ export default function Home() {
     try {
       setCarregando(true);
 
-      const usuarioLogadoRaw = await AsyncStorage.getItem("@olli_user_logado");
-      const usuarioLogado = usuarioLogadoRaw ? JSON.parse(usuarioLogadoRaw) : null;
+      const usuarioLogado = await obterSessao();
 
       if (!usuarioLogado) {
         router.replace("/");
         return;
       }
 
-      const petsExistentesRaw = await AsyncStorage.getItem("@olli_pets");
-      const todosOsPets: Pet[] = petsExistentesRaw ? JSON.parse(petsExistentesRaw) : [];
-
-      const petsDoTutor = todosOsPets.filter(pet => pet.uidTutor === usuarioLogado.uid);
-
-      setMeusPets(petsDoTutor);
+      // Os pets vêm do banco da clínica: a API já devolve apenas os do tutor
+      // autenticado, então não é preciso filtrar por uid aqui.
+      setMeusPets(await listarMeusPets());
     } catch (error) {
-      console.error("Erro ao carregar dados locais na Home:", error);
+      console.error("Erro ao carregar os pets na Home:", error);
     } finally {
       setCarregando(false);
     }
@@ -161,6 +146,23 @@ export default function Home() {
           </View>
         </ScrollView>
 
+        <TouchableOpacity
+          style={styles.cardTriagem}
+          activeOpacity={0.85}
+          onPress={() => router.push("/Triagem")}
+        >
+          <View style={styles.triagemIcone}>
+            <Ionicons name="pulse" size={26} color="#FFF" />
+          </View>
+          <View style={styles.triagemTexto}>
+            <Text style={styles.triagemTitulo}>Fazer triagem</Text>
+            <Text style={styles.triagemSub}>
+              Responda algumas perguntas e saiba se seu pet precisa de consulta.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color="#8A6A10" />
+        </TouchableOpacity>
+
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
             <Ionicons name="list" size={24} color="black" />
@@ -223,6 +225,29 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  cardTriagem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF6DF",
+    borderWidth: 1.5,
+    borderColor: "#FDCB5C",
+    borderRadius: 18,
+    padding: 16,
+    marginHorizontal: 20,
+    marginTop: 20,
+    gap: 12,
+  },
+  triagemIcone: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#FDCB5C",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  triagemTexto: { flex: 1 },
+  triagemTitulo: { fontSize: 16, fontWeight: "bold", color: "#222" },
+  triagemSub: { fontSize: 12, color: "#7A6320", marginTop: 2, lineHeight: 16 },
   container: { flex: 1, backgroundColor: "#FFF" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FFF" },
   loadingText: { marginTop: 10, fontSize: 14, color: "#666" },

@@ -1,0 +1,32 @@
+rules_version = '2';
+
+// Regras do Firestore do Olli Pet.
+//
+// COMO APLICAR:
+//   Firebase Console > projeto olli-pet-ca74e > Firestore Database > aba "Regras"
+//   Cole este conteúdo, clique em "Publicar" e aguarde ~1 minuto.
+//
+// Sem isto, o Firestore nega tudo: o cadastro cria a conta no Authentication
+// mas falha ao gravar o perfil, e o login não consegue ler o perfil de volta.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Perfil do usuário (tutores e veterinários), com o id igual ao uid do Auth.
+    // Cada pessoa só enxerga e altera o próprio documento.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Coleção legada, mantida para as contas criadas antes da unificação.
+    // Somente leitura: o app migra esses documentos para 'users' no login.
+    match /tutores/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Nada mais é acessível pelo cliente. Consultas, vacinação, triagem e
+    // prontuários vivem na API Java, que aplica as regras clínicas.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

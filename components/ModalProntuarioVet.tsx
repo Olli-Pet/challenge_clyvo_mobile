@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-interface Pet {
-  id: string;
-  nome: string;
-  raca: string;
-  info: string;
-}
+import { atualizarPet, buscarPet, Pet } from "@/services/api/petsApi";
+import { ErroApi } from "@/services/api/clienteApi";
 
 interface ModalProntuarioVetProps {
   visible: boolean;
@@ -34,25 +28,26 @@ export default function ModalProntuarioVet({ visible, onClose, pet }: ModalPront
     }
 
     try {
-      const petsRaw = await AsyncStorage.getItem("@olli_pets");
-      if (petsRaw) {
-        const todosOsPets: Pet[] = JSON.parse(petsRaw);
+      const dataHoje = new Date().toLocaleDateString("pt-BR");
 
-        const dataHoje = new Date().toLocaleDateString("pt-BR");
-        
-        const historicoAtualizado = `[${dataHoje} - Registro Med Vet]: ${novaEvolucao}\n\n${pet.info || ""}`;
+      // Relê o pet antes de escrever: outro atendimento pode ter registrado
+      // uma evolução depois que esta tela foi aberta.
+      const atual = await buscarPet(pet.id);
+      const historicoAtualizado =
+        `[${dataHoje} - Registro Med Vet]: ${novaEvolucao}
 
-        const novosPets = todosOsPets.map(p => 
-          p.id === pet.id ? { ...p, info: historicoAtualizado.trim() } : p
-        );
+${atual.info || ""}`.trim();
 
-        await AsyncStorage.setItem("@olli_pets", JSON.stringify(novosPets));
-        
-        Alert.alert("Sucesso", "Prontuário atualizado com sucesso!");
-        onClose();
-      }
+      await atualizarPet(pet.id, { ...atual, info: historicoAtualizado });
+
+      Alert.alert("Sucesso", "Prontuário atualizado com sucesso!");
+      onClose();
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível atualizar os dados.");
+      console.error("Erro ao atualizar o prontuário:", error);
+      Alert.alert(
+        "Erro",
+        error instanceof ErroApi ? error.message : "Não foi possível atualizar os dados."
+      );
     }
   };
 

@@ -2,24 +2,12 @@ import React, { useEffect, useState } from "react";
 import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useNavigation } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { listarTutoresPorUid, obterSessao } from "../services/sessao";
+import { listarTodosOsPets, Pet } from "@/services/api/petsApi";
+import { obterSessao } from "../services/sessao";
 
 import ModalProntuarioVetCompleto from "@/components/ModalProntuarioVetCompleto";
 import ModalPerfilVet from "@/components/ModalPerfilVet";
-
-interface Pet {
-  id: string;
-  nome: string;
-  raca: string;
-  cor: string;
-  porte: string;
-  sexo: string;
-  nascimento: string;
-  uidTutor: string;
-  info: string;
-}
 
 export default function HomeVet() {
   const [todosOsPets, setTodosOsPets] = useState<(Pet & { nomeTutor: string })[]>([]);
@@ -41,22 +29,13 @@ export default function HomeVet() {
         setNomeVet(vetDados.nome || "Médico(a)");
       }
 
-      const petsRaw = await AsyncStorage.getItem("@olli_pets");
-      const listaPets: Pet[] = petsRaw ? JSON.parse(petsRaw) : [];
+      // Todos os pacientes vêm do banco da clínica. A API já devolve o nome do
+      // responsável de cada pet, então não é preciso cruzar com outra fonte.
+      const listaPets = await listarTodosOsPets();
 
-      // Os tutores vêm do Firestore (e não mais do AsyncStorage, que guardava
-      // veterinários sob essa chave e fazia todo pet cair em "Desconhecido").
-      const tutoresPorUid = await listarTutoresPorUid();
-
-      const petsComTutor = listaPets.map(pet => {
-        const tutor = tutoresPorUid[pet.uidTutor];
-        return {
-          ...pet,
-          nomeTutor: tutor?.nome || "Responsável Desconhecido"
-        };
-      });
-
-      setTodosOsPets(petsComTutor);
+      setTodosOsPets(
+        listaPets.map((pet) => ({ ...pet, nomeTutor: pet.nomeResponsavel }))
+      );
     } catch (error) {
       console.error("Erro ao carregar dados na Home do Vet:", error);
     } finally {
@@ -133,7 +112,7 @@ export default function HomeVet() {
           ))}
 
           {todosOsPets.length === 0 && (
-            <Text style={styles.emptyText}>Nenhum paciente encontrado no sistema local.</Text>
+            <Text style={styles.emptyText}>Nenhum paciente cadastrado na clínica.</Text>
           )}
         </View>
 

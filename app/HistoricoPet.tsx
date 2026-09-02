@@ -3,7 +3,8 @@ import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, Sta
 import { Ionicons } from "@expo/vector-icons";
 import { router, useNavigation } from "expo-router";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { listarMeusPets, Pet } from "@/services/api/petsApi";
+import { obterSessao } from "@/services/sessao";
 
 import Header from "@/components/Header";
 import CardEventos from "@/components/CardEventos";
@@ -11,18 +12,6 @@ import BotaoIA from "@/components/BotaoIA";
 import ModalProntuario from "@/components/ModalProntuario";
 
 import ModalDescricaoEvento from "@/components/ModalDescricaoEvento";
-
-interface Pet {
-  id: string;
-  nome: string;
-  raca: string;
-  cor: string;
-  porte: string;
-  sexo: string;
-  nascimento: string;
-  info: string;
-  uidTutor: string;
-}
 
 interface EventoSelecionado {
   title: string;
@@ -47,18 +36,15 @@ export default function HistoricoPet() {
   const carregarDadosLocais = async () => {
     try {
       setLoading(true);
-      const usuarioLogadoRaw = await AsyncStorage.getItem("@olli_user_logado");
-      const usuarioLogado = usuarioLogadoRaw ? JSON.parse(usuarioLogadoRaw) : null;
+      const usuarioLogado = await obterSessao();
 
       if (!usuarioLogado) {
         router.replace("/");
         return;
       }
 
-      const petsExistentesRaw = await AsyncStorage.getItem("@olli_pets");
-      const todosOsPets: Pet[] = petsExistentesRaw ? JSON.parse(petsExistentesRaw) : [];
-      const petsDoTutor = todosOsPets.filter(pet => pet.uidTutor === usuarioLogado.uid);
-
+      // A API devolve apenas os pets do tutor autenticado.
+      const petsDoTutor = await listarMeusPets();
       setMeusPets(petsDoTutor);
 
       if (petsDoTutor.length > 0) {
@@ -67,7 +53,7 @@ export default function HistoricoPet() {
         setPetSelecionado(null);
       }
     } catch (error) {
-      console.error("Erro ao ler dados no histórico:", error);
+      console.error("Erro ao carregar os pets no histórico:", error);
     } finally {
       setLoading(false);
     }
