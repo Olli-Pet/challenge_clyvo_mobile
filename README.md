@@ -1,82 +1,173 @@
 # 🐾 OLLI PET — Cuidado Inteligente e Integrado
 
-> Um ecossistema digital desenvolvido para o desafio **Clyvo**, focado em medicina veterinária preventiva, gestão de rotina e suporte assistencial inteligente para pets.
+> Aplicativo mobile do desafio **Clyvo**, focado em medicina veterinária preventiva, gestão da rotina do pet e triagem clínica assistida.
+
+**Vídeo de apresentação:** _(inserir link do YouTube antes da entrega)_
 
 ---
 
-## 💡 A Proposta
-O **OLLI PET** nasceu para solucionar um grande desafio do mercado pet atual: a falta de centralização no histórico de cuidados do animal e a lacuna de comunicação entre tutores e clínicas. 
+## 💡 O problema e a solução
 
-Unindo uma interface altamente intuitiva no ambiente mobile com o poder da Inteligência Artificial, o aplicativo atua como o braço direito do tutor na organização do bem-estar animal, ao mesmo tempo em que fortalece a relevância e o retorno às consultas com Médicos Veterinários reais.
+Hoje o histórico de saúde de um pet vive espalhado: caderneta de vacinação em papel, receitas soltas, o que o tutor lembra da última consulta. Quando o animal adoece, o tutor não sabe se aquilo espera até segunda-feira ou é urgência — e a clínica recebe o caso sem contexto nenhum.
 
----
+O **OLLI PET** ataca esses dois pontos:
 
-## ✨ Funcionalidades Principais
+1. **Centraliza o cadastro e o prontuário do pet** num só lugar, acessível ao tutor e à clínica.
+2. **Classifica a urgência antes da consulta**, por meio de um questionário clínico fechado. A avaliação não é um simples somatório de respostas: o backend cruza o que foi respondido com a idade do animal, a situação da vacinação e atendimentos recentes. As **mesmas respostas** produzem classificações diferentes para pets diferentes.
 
-### 🔐 1. Acesso Multiperfil
-O sistema ramifica a experiência logo na tela de entrada:
-* **Ambiente do Responsável (Tutor):** Focado na gestão diária, visualização de insights e acompanhamento preventivo.
-* **Ambiente do Med Vet:** Focado no acompanhamento clínico e direcionamento de lembretes médicos.
+O resultado orienta o tutor (emergência, urgente, pouco urgente ou orientação) e prioriza quem realmente precisa ser atendido primeiro.
 
-### 📋 2. Cadastro Adaptável de Pets
-* Formulários inteligentes protegidos com `KeyboardAvoidingView` para evitar obstrução do teclado.
-* Máscara automática para inserção padronizada da data de nascimento.
-* Seletores rápidos de porte (Pequeno, Médio e Grande) e sexo.
-* **Avatares Dinâmicos:** Reconhecimento automático da raça/termo digitado (como cães, cavalos ou ornitorrincos) alterando a imagem de exibição em tempo real.
-
-### 🤖 3. Inteligência Artificial: Assistente OLLIA
-Conectado à API do **GOpenIA** (GPT), o chat oferece um suporte preventivo de ponta:
-* **Foco Ético e Seguro:** A IA atua estritamente tirando dúvidas comportamentais e de bem-estar. Caso identifique menções a sintomas ou pedidos de remédios, a assistente reforça que não substitui um profissional e direciona o tutor imediatamente para o agendamento clínico.
-* Interface fluida com histórico rolável automático e indicadores visuais de carregamento.
-
-### 📆 4. Calendário Pet de Via Dupla
-Um gerenciador de compromissos persistente (`AsyncStorage`) com divisão visual por cores:
-* 🟡 **Tags Amarelas:** Compromissos de rotina gerados pelo Responsável (banho, passeio, ração).
-* 🔵 **Tags Azuis:** Compromissos e avisos clínicos emitidos pelo Médico Veterinário (consultas, vacinas pendentes, exames).
+> A triagem é ferramenta de **orientação, nunca de diagnóstico** — todo resultado carrega esse aviso.
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 🧱 Arquitetura
 
-* **Framework:** [React Native](https://reactnative.dev/) com [Expo (Router)](https://docs.expo.dev/router/introduction/)
-* **Linguagem:** TypeScript
-* **Inteligência Artificial:** Google Generative AI SDK (`gemini-1.5-flash`)
-* **Persistência de Dados:** AsyncStorage
-* **Ícones:** @expo/vector-icons (Ionicons & MaterialCommunityIcons)
+O projeto separa claramente interface, regra de negócio e acesso a dados:
+
+```
+app/                    Telas e rotas (expo-router)
+  _layout.tsx           Providers + guard de rotas protegidas
+  index.tsx             Login
+  Cadastro.tsx          Cadastro de tutor
+  cadastrovet.tsx       Cadastro de veterinário
+  Home.tsx              Home do tutor
+  homevet.tsx           Painel clínico do veterinário
+  AddPet.tsx            Cadastro de pet
+  PetProfile.tsx        Perfil do pet
+  HistoricoPet.tsx      Histórico e prontuário
+  Triagem.tsx           Triagem clínica (fluxo + histórico)
+  calendariopet.tsx     Agenda de compromissos
+  chatia.tsx            Assistente virtual
+
+components/             Componentes reutilizáveis e modais
+contexts/
+  AuthContext.tsx       Estado de autenticação compartilhado
+hooks/                  Lógica de dados isolada da UI (TanStack Query)
+  usePets.ts            useQuery/useMutation dos pets
+  useTriagem.ts         useQuery/useMutation da triagem
+services/
+  firebaseConfig.ts     Inicialização do Firebase
+  sessao.ts             Perfil e sessão do usuário
+  avisar.ts             Alertas compatíveis com web e mobile
+  api/
+    clienteApi.ts       Cliente HTTP (injeta o token, trata erros)
+    petsApi.ts          Endpoints de pets
+    triagemApi.ts       Endpoints de triagem
+    autenticacaoApi.ts  Vínculo da conta Firebase com a clínica
+```
+
+**Nenhuma tela faz chamada HTTP direta.** As telas consomem hooks; os hooks chamam os serviços; os serviços falam com a API. O `clienteApi` é o único ponto que monta requisições.
 
 ---
 
-## 👥 Equipe de Desenvolvimento
+## 🔌 Integração com a API
 
-O projeto foi planejado, desenhado e codificado com muito carinho por:
+O app conversa com uma **API REST em Spring Boot** (projeto `challenge_clyvo_java`), consumida via HTTP com **TanStack Query**.
 
-* **Gabriely Bonfim**
-* **Mirelly Sousa**
-* **Andre Rosa**
-* **Henrique Vespasiano**
-* **Ruan Luca**
+### Divisão de responsabilidades
+
+| Responsabilidade | Onde vive | Por quê |
+|---|---|---|
+| Login, cadastro e sessão | Firebase Authentication | serviço de autenticação real, com persistência |
+| Perfil do usuário | Cloud Firestore | dado simples, ligado à conta |
+| Pets, prontuário e triagem | **API Java + H2/Flyway** | exigem regra de negócio que o cliente não deve aplicar |
+
+O app **não faz um segundo login**: envia o ID token que o Firebase já emite, e a API o valida contra as chaves públicas do Google.
+
+```ts
+const token = await auth.currentUser.getIdToken();
+// clienteApi.ts injeta isso em toda requisição
+```
+
+### Funcionalidades com CRUD completo
+
+Ambas usam dados reais da API — nada mockado.
+
+| Operação | Pets | Triagem |
+|---|---|---|
+| **Create** | `POST /pets` — tela AddPet | `POST /triagem` — questionário |
+| **Read** | `GET /pets/meus`, `GET /pets` | `GET /triagem/minhas`, `/protocolos/{id}` |
+| **Update** | `PUT /pets/{id}` — editar bio, prontuário | `PUT /triagem/{id}` — refazer avaliação |
+| **Delete** | `DELETE /pets/{id}` — gerenciar pets | `DELETE /triagem/{id}` — histórico |
+
+Toda mutação invalida o cache do TanStack Query, então **a interface se atualiza sozinha** — sem recarregar a tela ou reiniciar o app.
 
 ---
 
-# Link de apresentação no Youtube
-[Vídeo da solução no YT](https://youtu.be/eks4cH251RY?si=QGO8wJ9S4Q36-V-L) 
+## 🔐 Autenticação
 
-## 🚀 Como Executar o Projeto
+- **Firebase Authentication** com e-mail e senha (serviço externo real)
+- **Persistência de sessão** via AsyncStorage: o usuário não reautentica ao reabrir o app
+- **Proteção de rotas** no `_layout.tsx`: quem não está autenticado é enviado ao login, inclusive ao digitar a URL de uma tela interna
+- **Logout** disponível nos modais de perfil, com bloqueio imediato das telas protegidas
+- Dois perfis: **Responsável (tutor)** e **Médico Veterinário**, cada um com sua home
 
-1. Clone o repositório fechado:
-   ```bash
-   git clone <link-do-repositorio>
+---
 
-2. Install dependencies
+## 🛠️ Tecnologias
 
-   ```bash
-   npm install
-   ```
+**Mobile:** React Native · Expo · TypeScript · expo-router · TanStack Query · Firebase (Auth + Firestore)
 
-3. Start the app
+**Backend:** Java 21 · Spring Boot · Spring Security (OAuth2 Resource Server) · Spring Data JPA · Flyway · H2 · Swagger
 
-   ```bash
-   npx expo start
-   ```
-## Agora é só selecionar o modo de visualização e aproveitar a experiência!
+---
 
+## ▶️ Como executar
+
+### 1. Backend (obrigatório)
+
+O projeto exige **Java 21**. Se o seu `JAVA_HOME` apontar para outra versão, informe-o na execução:
+
+```bash
+cd challenge_clyvo_java-master
+JAVA_HOME="/caminho/para/jdk-21" ./mvnw spring-boot:run
+```
+
+A API sobe em `http://localhost:8080` (Swagger em `/swagger-ui.html`).
+
+> O banco é **H2 em memória**: ao reiniciar, os dados voltam ao estado inicial das migrations.
+
+### 2. Aplicativo
+
+```bash
+npm install
+npx expo start
+```
+
+O endereço da API fica em [`services/api/clienteApi.ts`](services/api/clienteApi.ts) — ajuste conforme o ambiente:
+
+| Ambiente | URL |
+|---|---|
+| Web / simulador iOS | `http://localhost:8080` |
+| Emulador Android | `http://10.0.2.2:8080` |
+| Celular físico (Expo Go) | `http://SEU_IP_NA_REDE:8080` |
+
+### 3. Firestore
+
+As regras de segurança estão em [`firestore.rules`](firestore.rules) e precisam estar publicadas no console do Firebase para o cadastro e o login funcionarem.
+
+### Contas de demonstração
+
+Criadas pela migration do Flyway. Senha de todas: `123456`.
+
+| Perfil | E-mail |
+|---|---|
+| Tutora | `maria.silva@email.com` |
+| Tutor | `joao.pereira@email.com` |
+| Veterinária | `camila.duarte@ollipet.com` |
+| Veterinário | `rafael.nunes@ollipet.com` |
+
+> Essas contas existem no banco da API. Para entrar pelo app, crie uma conta pela tela de cadastro — ela é vinculada à clínica automaticamente no primeiro acesso.
+
+---
+
+## 👥 Equipe
+
+**Olli Pet**
+
+- Andre Rosa Colombo — RM563112
+- Gabriely Bonfim Silva — RM566242
+- Henrique Rodrigues Vespasiano — RM562917
+- Mirelly Sousa Alves — RM566299
+- Ruan Luca Feliciano — RM562218

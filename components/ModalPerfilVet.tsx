@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  TextInput, Alert, ScrollView,
+  TextInput, ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { atualizarPerfil, obterSessao } from "../services/sessao";
+import { useAutenticacao } from "@/contexts/AuthContext";
+import { avisar, confirmar } from "@/services/avisar";
 
 interface Vet {
   uid?: string;
@@ -26,6 +28,21 @@ export default function ModalPerfilVet({ visible, onClose }: ModalPerfilVetProps
   const [crmv, setCrmv] = useState("");
   const [email, setEmail] = useState("");
 
+  const { sair } = useAutenticacao();
+
+  // Encerra a sessão; o guard em _layout.tsx devolve o usuário ao login.
+  const sairDaConta = () => {
+    confirmar(
+      "Sair da conta",
+      "Deseja encerrar a sessão?",
+      async () => {
+        onClose();
+        await sair();
+      },
+      "Sair"
+    );
+  };
+
   useEffect(() => {
     if (visible) {
       obterSessao().then((dados) => {
@@ -42,7 +59,7 @@ export default function ModalPerfilVet({ visible, onClose }: ModalPerfilVetProps
 
   const salvar = async () => {
     if (!nome.trim() || !crmv.trim() || !email.trim()) {
-      Alert.alert("Atenção", "Preencha todos os campos.");
+      avisar("Atenção", "Preencha todos os campos.");
       return;
     }
 
@@ -57,10 +74,10 @@ export default function ModalPerfilVet({ visible, onClose }: ModalPerfilVetProps
 
       setVet(atualizado as Vet);
       setEditando(false);
-      Alert.alert("Sucesso", "Perfil atualizado!");
+      avisar("Sucesso", "Perfil atualizado!");
     } catch (erro) {
       console.error("Erro ao atualizar o perfil do veterinário:", erro);
-      Alert.alert("Erro", "Não foi possível salvar as alterações. Tente novamente.");
+      avisar("Erro", "Não foi possível salvar as alterações. Tente novamente.");
     }
   };
 
@@ -137,6 +154,11 @@ export default function ModalPerfilVet({ visible, onClose }: ModalPerfilVetProps
                 <TouchableOpacity style={styles.btnVoltar} onPress={onClose}>
                   <Text style={styles.btnVoltarText}>Voltar</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity style={styles.btnSair} onPress={sairDaConta}>
+                  <Ionicons name="log-out-outline" size={18} color="#D64545" />
+                  <Text style={styles.btnSairText}>Sair da conta</Text>
+                </TouchableOpacity>
               </>
             )}
 
@@ -206,4 +228,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "#DDD",
   },
   btnVoltarText: { color: "#666", fontWeight: "600" },
+  btnSair: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: 12, marginTop: 6 },
+  btnSairText: { color: "#D64545", fontWeight: "600", fontSize: 14 },
 });

@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useNavigation } from "expo-router";
+import { router } from "expo-router";
 
-import { listarMeusPets, Pet } from "@/services/api/petsApi";
-import { obterSessao } from "@/services/sessao";
+import { useMeusPets } from "@/hooks/usePets";
+import { Pet } from "@/services/api/petsApi";
 
 import Header from "@/components/Header";
 import CardEventos from "@/components/CardEventos";
@@ -23,49 +23,18 @@ interface EventoSelecionado {
 }
 
 export default function HistoricoPet() {
-  const [meusPets, setMeusPets] = useState<Pet[]>([]);
-  const [petSelecionado, setPetSelecionado] = useState<Pet | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: meusPets = [], isPending: loading } = useMeusPets();
+
+  // Guarda apenas o id: o pet em si vem sempre da consulta, então uma edição
+  // no prontuário aparece aqui assim que o cache é invalidado.
+  const [idSelecionado, setIdSelecionado] = useState<number | null>(null);
+  const petSelecionado: Pet | null =
+    meusPets.find((pet) => pet.id === idSelecionado) ?? meusPets[0] ?? null;
   
   const [modalProntuarioVisible, setModalProntuarioVisible] = useState(false);
   const [modalDescricaoVisible, setModalDescricaoVisible] = useState(false);
   const [eventoParaExibir, setEventoParaExibir] = useState<EventoSelecionado | null>(null);
 
-  const navigation = useNavigation();
-
-  const carregarDadosLocais = async () => {
-    try {
-      setLoading(true);
-      const usuarioLogado = await obterSessao();
-
-      if (!usuarioLogado) {
-        router.replace("/");
-        return;
-      }
-
-      // A API devolve apenas os pets do tutor autenticado.
-      const petsDoTutor = await listarMeusPets();
-      setMeusPets(petsDoTutor);
-
-      if (petsDoTutor.length > 0) {
-        setPetSelecionado(petsDoTutor[0]);
-      } else {
-        setPetSelecionado(null);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar os pets no histórico:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    carregarDadosLocais();
-    const unsubscribe = navigation.addListener("focus", () => {
-      carregarDadosLocais();
-    });
-    return unsubscribe;
-  }, [navigation]);
 
   const abrirDescricaoEvento = (title: string, date: string, description: string) => {
     if (!petSelecionado) return;
@@ -109,7 +78,7 @@ export default function HistoricoPet() {
               <TouchableOpacity
                 key={pet.id}
                 style={[styles.tabItem, petSelecionado?.id === pet.id && styles.activeTab]}
-                onPress={() => setPetSelecionado(pet)}
+                onPress={() => setIdSelecionado(pet.id)}
               >
                 <Text style={styles.tabText}>{pet.nome}</Text>
               </TouchableOpacity>

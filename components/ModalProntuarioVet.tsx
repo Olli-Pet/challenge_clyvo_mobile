@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from "react-native";
+import { Modal, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { atualizarPet, buscarPet, Pet } from "@/services/api/petsApi";
+import { useAtualizarPet } from "@/hooks/usePets";
+import { buscarPet, Pet } from "@/services/api/petsApi";
 import { ErroApi } from "@/services/api/clienteApi";
+import { avisar } from "@/services/avisar";
 
 interface ModalProntuarioVetProps {
   visible: boolean;
@@ -14,6 +16,10 @@ export default function ModalProntuarioVet({ visible, onClose, pet }: ModalPront
   const [novaEvolucao, setNovaEvolucao] = useState("");
   const [historicoAtual, setHistoricoAtual] = useState("");
 
+  // A mutação invalida o cache de pets, então a evolução salva aparece
+  // na lista de pacientes e no histórico sem recarregar a tela.
+  const { mutateAsync: salvarPet, isPending: salvando } = useAtualizarPet();
+
   useEffect(() => {
     if (pet) {
       setHistoricoAtual(pet.info || "Sem registros clínicos anteriores.");
@@ -23,7 +29,7 @@ export default function ModalProntuarioVet({ visible, onClose, pet }: ModalPront
 
   const salvarNovaEntradaClinica = async () => {
     if (!pet || !novaEvolucao.trim()) {
-      Alert.alert("Aviso", "Por favor, digite alguma informação para adicionar ao prontuário.");
+      avisar("Aviso", "Por favor, digite alguma informação para adicionar ao prontuário.");
       return;
     }
 
@@ -38,13 +44,13 @@ export default function ModalProntuarioVet({ visible, onClose, pet }: ModalPront
 
 ${atual.info || ""}`.trim();
 
-      await atualizarPet(pet.id, { ...atual, info: historicoAtualizado });
+      await salvarPet({ id: pet.id, dados: { ...atual, info: historicoAtualizado } });
 
-      Alert.alert("Sucesso", "Prontuário atualizado com sucesso!");
+      avisar("Sucesso", "Prontuário atualizado com sucesso!");
       onClose();
     } catch (error) {
       console.error("Erro ao atualizar o prontuário:", error);
-      Alert.alert(
+      avisar(
         "Erro",
         error instanceof ErroApi ? error.message : "Não foi possível atualizar os dados."
       );
@@ -87,12 +93,19 @@ ${atual.info || ""}`.trim();
             />
 
             <TouchableOpacity 
-              style={styles.btnSalvar} 
+              style={[styles.btnSalvar, salvando && { opacity: 0.7 }]}
               activeOpacity={0.8}
               onPress={salvarNovaEntradaClinica}
+              disabled={salvando}
             >
-              <Ionicons name="cloud-upload-outline" size={20} color="#FFF" />
-              <Text style={styles.btnSalvarText}>Salvar no Prontuário</Text>
+              {salvando ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <>
+                  <Ionicons name="cloud-upload-outline" size={20} color="#FFF" />
+                  <Text style={styles.btnSalvarText}>Salvar no Prontuário</Text>
+                </>
+              )}
             </TouchableOpacity>
 
           </ScrollView>

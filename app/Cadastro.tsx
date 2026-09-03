@@ -11,7 +11,6 @@ import {
   Platform,
   StatusBar,
   Image, 
-  Alert, 
   ActivityIndicator
 } from "react-native";
 import { router } from "expo-router";
@@ -19,7 +18,7 @@ import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../services/firebaseConfig";
-import { salvarSessao } from "../services/sessao";
+import { useAutenticacao } from "@/contexts/AuthContext";
 import { apenasDigitos, garantirCadastroNaClinica } from "../services/api/autenticacaoApi";
 
 import { avisar, avisarEEntao } from "../services/avisar";
@@ -36,6 +35,8 @@ export default function Cadastro() {
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const { entrar: registrarSessao } = useAutenticacao();
 
   const handleCadastro = async () => {
     if (!nome.trim() || !cpf.trim() || !email.trim() || !senha.trim()) {
@@ -78,15 +79,16 @@ export default function Cadastro() {
       // 3. Salva na coleção unificada 'users', usando o UID gerado pelo Auth
       await setDoc(doc(db, "users", user.uid), tutorData);
 
-      // 4. Grava a sessão localmente para manter o app logado.
-      //    createdAt vira Date aqui: serverTimestamp() é um marcador que só
-      //    o Firestore resolve, e não sobrevive ao JSON da sessão.
-      await salvarSessao({ ...tutorData, createdAt: new Date() });
+      // 4. Publica a sessão no contexto, que a persiste e já libera as rotas
+      //    protegidas. createdAt vira Date aqui porque serverTimestamp() é um
+      //    marcador que só o Firestore resolve, e não sobrevive ao JSON.
+      await registrarSessao({ ...tutorData, createdAt: new Date() });
 
-      // 5. Vincula a conta a clinica (API Java), que passa a conhecer este tutor
-      //    pelo firebase_uid. Se a API estiver fora do ar o cadastro nao falha:
-      //    o vinculo e idempotente e sera refeito no proximo login.
-      await garantirCadastroNaClinica(cpfNormalizado);
+      // 5. Vincula a conta à clínica (API Java), que passa a conhecer este tutor
+      //    pelo firebase_uid. Sem await de propósito: se a API estiver fora do ar,
+      //    o fetch demora até falhar e não pode segurar o cadastro, que já está
+      //    concluído no Firebase. O vínculo é idempotente e se refaz no login.
+      void garantirCadastroNaClinica(cpfNormalizado);
 
       avisarEEntao("Sucesso! ✨", "Cadastro realizado com sucesso!", () =>
         router.replace("/Home")

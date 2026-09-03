@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useNavigation } from "expo-router";
+import { router } from "expo-router";
 
-import { listarMeusPets, Pet } from "@/services/api/petsApi";
-import { obterSessao } from "@/services/sessao";
+import { useMeusPets } from "@/hooks/usePets";
+import { Pet } from "@/services/api/petsApi";
 
 import Header from "@/components/Header";
 import PetCircle from "@/components/PetCircle";
@@ -23,44 +23,13 @@ interface EventoSelecionado {
 }
 
 export default function Home() {
-  const [meusPets, setMeusPets] = useState<Pet[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  
   const [modalDescricaoVisible, setModalDescricaoVisible] = useState(false);
   const [eventoParaExibir, setEventoParaExibir] = useState<EventoSelecionado | null>(null);
-  
-  const navigation = useNavigation();
 
-  const carregarDadosLocais = async () => {
-    try {
-      setCarregando(true);
-
-      const usuarioLogado = await obterSessao();
-
-      if (!usuarioLogado) {
-        router.replace("/");
-        return;
-      }
-
-      // Os pets vêm do banco da clínica: a API já devolve apenas os do tutor
-      // autenticado, então não é preciso filtrar por uid aqui.
-      setMeusPets(await listarMeusPets());
-    } catch (error) {
-      console.error("Erro ao carregar os pets na Home:", error);
-    } finally {
-      setCarregando(false);
-    }
-  };
-
-  useEffect(() => {
-    carregarDadosLocais();
-
-    const unsubscribe = navigation.addListener("focus", () => {
-      carregarDadosLocais();
-    });
-
-    return unsubscribe;
-  }, [navigation]);
+  // O TanStack Query cuida do carregamento, do cache e da atualização: ao
+  // cadastrar ou excluir um pet, a mutação invalida esta consulta e a lista
+  // se refaz sozinha, sem recarregar a tela.
+  const { data: meusPets = [], isPending: carregando, isError: clinicaIndisponivel } = useMeusPets();
 
   const abrirDescricaoEvento = (title: string, date: string, description: string) => {
     if (meusPets.length === 0) return;
@@ -78,7 +47,7 @@ export default function Home() {
 
   const navegarParaPerfil = (pet: Pet) => {
     router.push({
-      pathname: "/petprofile",
+      pathname: "/PetProfile",
       params: {
         nome: pet.nome,
         raca: pet.raca,
@@ -138,13 +107,23 @@ export default function Home() {
             <TouchableOpacity 
               style={styles.addButton}
               activeOpacity={0.7}
-              onPress={() => router.push("/addpet")}
+              onPress={() => router.push("/AddPet")}
             >
               <Ionicons name="add" size={35} color="black" />
             </TouchableOpacity>
             <Text style={styles.petName}>Adicionar</Text>
           </View>
         </ScrollView>
+
+        {clinicaIndisponivel && (
+          <View style={styles.avisoClinica}>
+            <Ionicons name="cloud-offline-outline" size={20} color="#8A6A10" />
+            <Text style={styles.avisoClinicaTexto}>
+              Não conseguimos falar com a clínica. Verifique se a API está rodando
+              (mvnw spring-boot:run) para ver e cadastrar seus pets.
+            </Text>
+          </View>
+        )}
 
         <TouchableOpacity
           style={styles.cardTriagem}
@@ -169,7 +148,7 @@ export default function Home() {
             <Text style={styles.sectionTitle}>Últimos Eventos</Text>
           </View>
           
-          <TouchableOpacity onPress={() => router.push("/historicopet")}>
+          <TouchableOpacity onPress={() => router.push("/HistoricoPet")}>
             <Text style={styles.verTudo}>ver tudo</Text>
           </TouchableOpacity>
         </View>
@@ -225,6 +204,19 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  avisoClinica: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FFF6DF",
+    borderWidth: 1,
+    borderColor: "#E7B84C",
+    borderRadius: 14,
+    padding: 12,
+    marginHorizontal: 20,
+    marginTop: 20,
+  },
+  avisoClinicaTexto: { flex: 1, fontSize: 12, color: "#8A6A10", lineHeight: 17 },
   cardTriagem: {
     flexDirection: "row",
     alignItems: "center",

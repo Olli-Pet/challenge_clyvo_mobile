@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Modal, View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAutenticacao } from "@/contexts/AuthContext";
+import { confirmar } from "@/services/avisar";
+import { obterSessao } from "@/services/sessao";
 
 interface ModalPerfilProps {
   visible: boolean;
@@ -10,11 +12,21 @@ interface ModalPerfilProps {
 
 export default function ModalPerfil({ visible, onClose }: ModalPerfilProps) {
   const [tutor, setTutor] = useState<{ nome?: string; email?: string } | null>(null);
+  const { sair } = useAutenticacao();
+
+  // Encerra a sessão no Firebase e limpa os dados locais. O guard em
+  // _layout.tsx percebe a mudança e leva o usuário de volta ao login.
+  const sairDaConta = () => {
+    confirmar("Sair da conta", "Deseja encerrar a sessão?", async () => {
+      onClose();
+      await sair();
+    }, "Sair");
+  };
 
   useEffect(() => {
     if (visible) {
-      AsyncStorage.getItem("@olli_user_logado").then((raw) => {
-        if (raw) setTutor(JSON.parse(raw));
+      obterSessao().then((sessao) => {
+        if (sessao) setTutor(sessao);
       });
     }
   }, [visible]);
@@ -43,6 +55,11 @@ export default function ModalPerfil({ visible, onClose }: ModalPerfilProps) {
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Voltar</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.botaoSair} onPress={sairDaConta}>
+            <Ionicons name="log-out-outline" size={18} color="#D64545" />
+            <Text style={styles.botaoSairTexto}>Sair da conta</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -58,5 +75,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 12, color: "#999", width: "100%", textAlign: "left", marginTop: 10 },
   value: { fontSize: 16, fontWeight: "600", color: "#333", width: "100%", textAlign: "left", marginBottom: 5, paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: "#EEE" },
   button: { backgroundColor: "#FDCB5C", width: "100%", padding: 12, borderRadius: 25, alignItems: "center", marginTop: 25 },
+  botaoSair: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: 12, marginTop: 10 },
+  botaoSairTexto: { color: "#D64545", fontWeight: "600", fontSize: 14 },
   buttonText: { fontWeight: "bold", color: "#000" }
 });

@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../services/firebaseConfig";
-import { salvarSessao } from "../services/sessao";
+import { useAutenticacao } from "@/contexts/AuthContext";
 import { avisar, avisarEEntao } from "../services/avisar";
 
 export default function CadastroVet() {
@@ -15,6 +15,8 @@ export default function CadastroVet() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const { entrar: registrarSessao } = useAutenticacao();
 
   const handleCadastro = async () => {
     if (!nome.trim() || !crmv.trim() || !email.trim() || !senha.trim()) {
@@ -51,9 +53,10 @@ export default function CadastroVet() {
       // 3. Salva na coleção unificada 'users', usando o UID gerado pelo Auth
       await setDoc(doc(db, "users", user.uid), vetData);
 
-      // 4. Grava a sessão localmente. createdAt vira Date aqui porque
-      //    serverTimestamp() é um marcador resolvido só pelo Firestore.
-      await salvarSessao({ ...vetData, createdAt: new Date() });
+      // 4. Publica a sessão no contexto, que a persiste e libera as rotas
+      //    protegidas. createdAt vira Date aqui porque serverTimestamp() é um
+      //    marcador resolvido só pelo Firestore.
+      await registrarSessao({ ...vetData, createdAt: new Date() });
 
       avisarEEntao("Sucesso", "Doutor(a), seu perfil foi criado!", () =>
         router.replace("/homevet")

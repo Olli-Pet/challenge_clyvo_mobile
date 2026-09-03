@@ -92,6 +92,33 @@ export function enviarTriagem(dados: {
   return chamarApi<ResultadoTriagem>("/triagem", { metodo: "POST", corpo: dados });
 }
 
+/** Historico de triagens do tutor (a API devolve paginado). */
+export async function listarMinhasTriagens(): Promise<ResultadoTriagem[]> {
+  const pagina = await chamarApi<{ content: ResultadoTriagem[] }>("/triagem/minhas?size=50");
+  return pagina.content ?? [];
+}
+
+/** Uma triagem especifica. */
+export function buscarTriagem(id: number): Promise<ResultadoTriagem> {
+  return chamarApi<ResultadoTriagem>(`/triagem/${id}`);
+}
+
+/**
+ * Refaz a triagem com novas respostas. A API reavalia do zero, entao a
+ * classificacao pode mudar.
+ */
+export function refazerTriagem(
+  id: number,
+  dados: { petId: number; queixaId: number; respostas: RespostaInformada[] }
+): Promise<ResultadoTriagem> {
+  return chamarApi<ResultadoTriagem>(`/triagem/${id}`, { metodo: "PUT", corpo: dados });
+}
+
+/** Remove a triagem do historico. */
+export function excluirTriagem(id: number): Promise<void> {
+  return chamarApi<void>(`/triagem/${id}`, { metodo: "DELETE" });
+}
+
 /**
  * Decide se uma pergunta deve aparecer, dadas as respostas ja informadas.
  * Perguntas sem dependencia aparecem sempre.

@@ -1,58 +1,37 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useNavigation } from "expo-router";
 
-import { listarTodosOsPets, Pet } from "@/services/api/petsApi";
-import { obterSessao } from "../services/sessao";
+import { usePetsDaClinica } from "@/hooks/usePets";
+import { Pet } from "@/services/api/petsApi";
+import { useAutenticacao } from "@/contexts/AuthContext";
 
 import ModalProntuarioVetCompleto from "@/components/ModalProntuarioVetCompleto";
 import ModalPerfilVet from "@/components/ModalPerfilVet";
 
+type PetComTutor = Pet & { nomeTutor: string };
+
 export default function HomeVet() {
-  const [todosOsPets, setTodosOsPets] = useState<(Pet & { nomeTutor: string })[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [nomeVet, setNomeVet] = useState("Médico(a)");
+  const { usuario } = useAutenticacao();
+  const nomeVet = usuario?.nome || "Médico(a)";
+
+  // A API já devolve o nome do responsável de cada pet, então basta renomear
+  // o campo para o formato que os componentes desta tela esperam.
+  const { data: pets = [], isPending: carregando } = usePetsDaClinica();
+  const todosOsPets: PetComTutor[] = pets.map((pet) => ({
+    ...pet,
+    nomeTutor: pet.nomeResponsavel,
+  }));
 
   const [modalProntuarioVisible, setModalProntuarioVisible] = useState(false);
-  const [petSelecionado, setPetSelecionado] = useState<(Pet & { nomeTutor: string }) | null>(null);
+  const [idSelecionado, setIdSelecionado] = useState<number | null>(null);
   const [modalPerfilVisible, setModalPerfilVisible] = useState(false);
 
-  const navigation = useNavigation();
+  // Deriva da consulta para o prontuário refletir a última evolução salva.
+  const petSelecionado = todosOsPets.find((pet) => pet.id === idSelecionado) ?? null;
 
-  const carregarDadosGerais = async () => {
-    try {
-      setCarregando(true);
-
-      const vetDados = await obterSessao();
-      if (vetDados) {
-        setNomeVet(vetDados.nome || "Médico(a)");
-      }
-
-      // Todos os pacientes vêm do banco da clínica. A API já devolve o nome do
-      // responsável de cada pet, então não é preciso cruzar com outra fonte.
-      const listaPets = await listarTodosOsPets();
-
-      setTodosOsPets(
-        listaPets.map((pet) => ({ ...pet, nomeTutor: pet.nomeResponsavel }))
-      );
-    } catch (error) {
-      console.error("Erro ao carregar dados na Home do Vet:", error);
-    } finally {
-      setCarregando(false);
-    }
-  };
-
-  useEffect(() => {
-    carregarDadosGerais();
-    const unsubscribe = navigation.addListener("focus", () => {
-      carregarDadosGerais();
-    });
-    return unsubscribe;
-  }, [navigation]);
-
-  const abrirProntuario = (pet: Pet & { nomeTutor: string }) => {
-    setPetSelecionado(pet);
+  const abrirProntuario = (pet: PetComTutor) => {
+    setIdSelecionado(pet.id);
     setModalProntuarioVisible(true);
   };
 
@@ -120,19 +99,13 @@ export default function HomeVet() {
 
       <ModalProntuarioVetCompleto
         visible={modalProntuarioVisible}
-        onClose={() => {
-          setModalProntuarioVisible(false);
-          carregarDadosGerais();
-        }}
+        onClose={() => setModalProntuarioVisible(false)}
         pet={petSelecionado}
       />
 
       <ModalPerfilVet
         visible={modalPerfilVisible}
-        onClose={() => {
-          setModalPerfilVisible(false);
-          carregarDadosGerais();
-        }}
+        onClose={() => setModalPerfilVisible(false)}
       />
 
     </SafeAreaView>

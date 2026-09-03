@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { 
   View, 
   Text, 
@@ -14,11 +14,12 @@ import {
   ActivityIndicator
 } from "react-native";
 import { router } from "expo-router";
-import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../services/firebaseConfig";
-import { carregarPerfil, salvarSessao } from "../services/sessao";
+import { carregarPerfil } from "../services/sessao";
 import { garantirCadastroNaClinica } from "../services/api/autenticacaoApi";
 import { avisar } from "../services/avisar";
+import { useAutenticacao } from "@/contexts/AuthContext";
 
 import OndaTop from "../components/Onda";
 import OndaBottom from "../components/OndaBottom";
@@ -29,51 +30,12 @@ export default function Index() {
   const [senha, setSenha] = useState("");
   const [tipoUsuario, setTipoUsuario] = useState<"tutor" | "vet">("tutor");
   const [loading, setLoading] = useState(false);
-  // Enquanto verificamos se já existe sessão salva, evitamos piscar o formulário.
-  const [verificandoSessao, setVerificandoSessao] = useState(true);
+
+  // O contexto guarda a sessão; o guard em _layout.tsx cuida do redirecionamento
+  // automático de quem já está autenticado.
+  const { entrar: registrarSessao } = useAutenticacao();
 
   const corAtiva = tipoUsuario === "vet" ? "#66A6FA" : "#E7B84C";
-
-  // Auto-login: o Firebase Auth restaura a sessão do AsyncStorage ao abrir o
-  // app. Se já houver usuário autenticado, vai direto para a home dele.
-  useEffect(() => {
-    let ativo = true;
-
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        if (ativo) setVerificandoSessao(false);
-        return;
-      }
-
-      try {
-        const perfil = await carregarPerfil(user.uid);
-        if (!ativo) return;
-
-        if (perfil) {
-          await salvarSessao(perfil);
-          router.replace(perfil.tipo === "vet" ? "/homevet" : "/Home");
-          return;
-        }
-      } catch (erro) {
-        console.warn("Falha ao restaurar a sessão:", erro);
-      }
-
-      if (ativo) setVerificandoSessao(false);
-    });
-
-    return () => {
-      ativo = false;
-      unsubscribe();
-    };
-  }, []);
-
-  if (verificandoSessao) {
-    return (
-      <SafeAreaView style={[styles.container, styles.centralizado]}>
-        <ActivityIndicator size="large" color={corAtiva} />
-      </SafeAreaView>
-    );
-  }
 
   async function entrar() {
     if (!email.trim() || !senha.trim()) {
@@ -108,19 +70,20 @@ export default function Index() {
         return;
       }
 
-      // 3. Salva a sessão localmente (fica ativa para as demais telas)
-      await salvarSessao(perfil);
+      // 3. Publica a sessão no contexto, que a persiste e libera as rotas
+      //    protegidas para as demais telas.
+      await registrarSessao(perfil);
 
-      // 4. Revalida o vínculo com a clínica (API Java). É idempotente, então
-      //    cobre também os tutores cadastrados antes da integração existir.
-      //    Falha aqui não impede o login: a API é um complemento do Firebase.
-      if (perfil.tipo === "tutor" && perfil.cpf) {
-        await garantirCadastroNaClinica(perfil.cpf);
-      }
-
-      // 5. Redireciona conforme o tipo. Usa replace para o botão "voltar"
+      // 4. Redireciona conforme o tipo. Usa replace para o botão "voltar"
       //    não retornar à tela de login já autenticado.
       router.replace(perfil.tipo === "vet" ? "/homevet" : "/Home");
+
+      // 5. Revalida o vínculo com a clínica (API Java) DEPOIS de navegar, e sem
+      //    await: se a API estiver fora do ar, o fetch pode demorar até falhar,
+      //    e o login não pode ficar preso esperando por ela.
+      if (perfil.tipo === "tutor" && perfil.cpf) {
+        void garantirCadastroNaClinica(perfil.cpf);
+      }
 
     } catch (error: any) {
       let mensagemErro = "Ocorreu um erro ao tentar entrar.";

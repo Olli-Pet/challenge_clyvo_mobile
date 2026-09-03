@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from "react-native";
+import React, { useState } from "react";
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { atualizarPet, listarMeusPets, Pet, removerPet } from "@/services/api/petsApi";
+import { useAtualizarPet, useMeusPets, useRemoverPet } from "@/hooks/usePets";
+import { Pet } from "@/services/api/petsApi";
 import { ErroApi } from "@/services/api/clienteApi";
+import { avisar, confirmar } from "@/services/avisar";
 
 interface ModalGerenciarPetsProps {
   visible: boolean;
@@ -10,57 +12,45 @@ interface ModalGerenciarPetsProps {
 }
 
 export default function ModalGerenciarPets({ visible, onClose }: ModalGerenciarPetsProps) {
-  const [pets, setPets] = useState<Pet[]>([]);
   const [petEditando, setPetEditando] = useState<number | null>(null);
   const [novaInfo, setNovaInfo] = useState("");
 
-  const carregarPets = async () => {
-    try {
-      setPets(await listarMeusPets());
-    } catch (erro) {
-      console.error("Erro ao carregar os pets:", erro);
-      Alert.alert(
-        "Erro",
-        erro instanceof ErroApi ? erro.message : "Não foi possível carregar seus pets."
-      );
-    }
-  };
+  // A lista vem do cache compartilhado: editar ou excluir aqui reflete
+  // imediatamente na Home e nas demais telas.
+  const { data: pets = [], isPending: carregando } = useMeusPets();
+  const { mutateAsync: salvarPet, isPending: salvando } = useAtualizarPet();
+  const { mutateAsync: excluirPet } = useRemoverPet();
 
-  useEffect(() => { if (visible) carregarPets(); }, [visible]);
+  const mensagemDeErro = (erro: unknown, padrao: string) =>
+    erro instanceof ErroApi ? erro.message : padrao;
 
   const salvarEdicao = async (pet: Pet) => {
     try {
       // O PUT da API substitui o pet inteiro, então os demais campos são
       // reenviados junto com a bio editada.
-      await atualizarPet(pet.id, { ...pet, info: novaInfo });
+      await salvarPet({ id: pet.id, dados: { ...pet, info: novaInfo } });
       setPetEditando(null);
-      await carregarPets();
-      Alert.alert("Sucesso", "Informações do pet atualizadas!");
+      avisar("Sucesso", "Informações do pet atualizadas!");
     } catch (erro) {
       console.error("Erro ao atualizar o pet:", erro);
-      Alert.alert(
-        "Erro",
-        erro instanceof ErroApi ? erro.message : "Não foi possível salvar as alterações."
-      );
+      avisar("Erro", mensagemDeErro(erro, "Não foi possível salvar as alterações."));
     }
   };
 
   const deletarPet = (id: number, nome: string) => {
-    Alert.alert("Excluir Pet", `Tem certeza que deseja apagar os registros de ${nome}?`, [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Apagar", style: "destructive", onPress: async () => {
-          try {
-            await removerPet(id);
-            await carregarPets();
-          } catch (erro) {
-            console.error("Erro ao excluir o pet:", erro);
-            Alert.alert(
-              "Erro",
-              erro instanceof ErroApi ? erro.message : "Não foi possível excluir o pet."
-            );
-          }
-        }}
-    ]);
+    confirmar(
+      "Excluir Pet",
+      `Tem certeza que deseja apagar os registros de ${nome}?`,
+      async () => {
+        try {
+          await excluirPet(id);
+        } catch (erro) {
+          console.error("Erro ao excluir o pet:", erro);
+          avisar("Erro", mensagemDeErro(erro, "Não foi possível excluir o pet."));
+        }
+      },
+      "Apagar"
+    );
   };
 
   return (
@@ -93,8 +83,16 @@ export default function ModalGerenciarPets({ visible, onClose }: ModalGerenciarP
                 {petEditando === pet.id ? (
                   <View style={styles.editSection}>
                     <TextInput style={styles.input} value={novaInfo} onChangeText={setNovaInfo} multiline />
-                    <TouchableOpacity style={styles.saveBtn} onPress={() => salvarEdicao(pet)}>
-                      <Text style={styles.saveText}>Salvar Bio</Text>
+                    <TouchableOpacity
+                      style={styles.saveBtn}
+                      onPress={() => salvarEdicao(pet)}
+                      disabled={salvando}
+                    >
+                      {salvando ? (
+                        <ActivityIndicator color="#000" size="small" />
+                      ) : (
+                        <Text style={styles.saveText}>Salvar Bio</Text>
+                      )}
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -102,7 +100,13 @@ export default function ModalGerenciarPets({ visible, onClose }: ModalGerenciarP
                 )}
               </View>
             ))}
-            {pets.length === 0 && <Text style={styles.empty}>Nenhum pet encontrado.</Text>}
+            {carregando && (
+              <ActivityIndicator color="#FDCB5C" style={{ marginVertical: 20 }} />
+            )}
+
+            {!carregando && pets.length === 0 && (
+              <Text style={styles.empty}>Nenhum pet encontrado.</Text>
+            )}
           </ScrollView>
         </View>
       </View>

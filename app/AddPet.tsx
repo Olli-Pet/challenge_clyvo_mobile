@@ -17,8 +17,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import { criarPet, Especie, paraDataIso } from "@/services/api/petsApi";
+import { useCriarPet } from "@/hooks/usePets";
+import { Especie, paraDataIso } from "@/services/api/petsApi";
 import { ErroApi } from "@/services/api/clienteApi";
+import { avisarEEntao, avisar } from "@/services/avisar";
 
 import Header from "@/components/Header";
 import BotaoIA from "@/components/BotaoIA";
@@ -33,7 +35,9 @@ export default function AdicionarPet() {
   // A API so aceita CAO ou GATO, e o campo e obrigatorio no cadastro.
   const [especie, setEspecie] = useState<Especie>("CAO");
   const [info, setInfo] = useState("");
-  const [loading, setLoading] = useState(false);
+  // A mutação expõe o estado de envio (isPending) e, ao concluir, invalida a
+  // lista de pets — a Home já mostra o novo pet sem recarregar nada.
+  const { mutateAsync: cadastrarPet, isPending: loading } = useCriarPet();
 
   const obterImagemPet = (termo: string) => {
     const busca = termo.toLowerCase();
@@ -74,10 +78,8 @@ export default function AdicionarPet() {
       return;
     }
 
-    setLoading(true);
-
     try {
-      const petCriado = await criarPet({
+      const petCriado = await cadastrarPet({
         nome,
         raca,
         especie,
@@ -88,18 +90,17 @@ export default function AdicionarPet() {
         info: info || "Este pet não possui uma biografia cadastrada.",
       });
 
-      Alert.alert("Sucesso!", `${petCriado.nome} foi adicionado à sua família! 🐾`);
-      router.replace("/Home");
+      avisarEEntao("Sucesso!", `${petCriado.nome} foi adicionado à sua família! 🐾`, () =>
+        router.replace("/Home")
+      );
     } catch (error: any) {
       console.error("Erro ao cadastrar o pet:", error);
-      Alert.alert(
+      avisar(
         "Erro ao salvar",
         error instanceof ErroApi
           ? error.message
           : "Não conseguimos cadastrar o pet. Tente novamente."
       );
-    } finally {
-      setLoading(false);
     }
   };
 

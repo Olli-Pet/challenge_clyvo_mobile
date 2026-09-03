@@ -31,3 +31,29 @@ export function avisarEEntao(titulo: string, mensagem: string, aoConfirmar: () =
 
   Alert.alert(titulo, mensagem, [{ text: "OK", onPress: aoConfirmar }]);
 }
+
+/**
+ * Pede confirmação antes de uma ação destrutiva.
+ *
+ * Assim como o Alert com botões, o diálogo do React Native não aparece no web;
+ * lá usamos o window.confirm, que é bloqueante e devolve a escolha direto.
+ */
+export function confirmar(
+  titulo: string,
+  mensagem: string,
+  aoConfirmar: () => void,
+  textoConfirmar = "Confirmar"
+): void {
+  if (Platform.OS === "web") {
+    // eslint-disable-next-line no-alert
+    if (window.confirm(`${titulo}\n\n${mensagem}`)) {
+      aoConfirmar();
+    }
+    return;
+  }
+
+  Alert.alert(titulo, mensagem, [
+    { text: "Cancelar", style: "cancel" },
+    { text: textoConfirmar, style: "destructive", onPress: aoConfirmar },
+  ]);
+}
