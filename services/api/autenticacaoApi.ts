@@ -8,8 +8,12 @@ import { chamarApi, ErroApi } from "./clienteApi";
  */
 
 export type RegistroFirebase = {
-  /** Somente numeros, 11 digitos. A API recusa CPF formatado. */
-  cpf: string;
+  /**
+   * Somente numeros, 11 digitos. A API recusa CPF formatado.
+   * Obrigatorio para criar um tutor; dispensavel quando o e-mail do token ja
+   * pertence a um cadastro da clinica (o caso do veterinario).
+   */
+  cpf?: string;
   /** Opcional, no formato ISO (aaaa-mm-dd). */
   dataNascimento?: string;
 };
@@ -37,22 +41,26 @@ export async function registrarContaNaClinica(dados: RegistroFirebase): Promise<
   return chamarApi<ContaClinica>("/auth/registrar", {
     metodo: "POST",
     corpo: {
-      cpf: apenasDigitos(dados.cpf),
+      cpf: dados.cpf ? apenasDigitos(dados.cpf) : null,
       dataNascimento: dados.dataNascimento ?? null,
     },
   });
 }
 
 /**
- * Garante o cadastro na clinica sem interromper o fluxo de login.
+ * Garante o vinculo com a clinica sem interromper o fluxo de login.
  *
- * A API e um complemento: se ela estiver fora do ar, o app continua funcionando com
- * o Firebase (pets, perfil, agenda local). Por isso as falhas aqui sao registradas
- * mas nao propagadas — quem chama decide seguir em frente.
+ * Para o tutor, cria o cadastro a partir do CPF. Para o veterinario, o CPF nao
+ * se aplica: a API reconhece o e-mail do token como um cadastro ja existente e
+ * apenas grava o firebase_uid nele — e isso que faz o app ser aceito como
+ * VETERINARIO nas rotas da clinica.
  *
- * @returns true se o cadastro na clinica esta garantido.
+ * A API e um complemento: se estiver fora do ar, o app segue funcionando com o
+ * Firebase. Por isso as falhas aqui sao registradas mas nao propagadas.
+ *
+ * @returns true se o vinculo com a clinica esta garantido.
  */
-export async function garantirCadastroNaClinica(cpf: string): Promise<boolean> {
+export async function garantirCadastroNaClinica(cpf?: string): Promise<boolean> {
   try {
     await registrarContaNaClinica({ cpf });
     return true;

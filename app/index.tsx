@@ -81,9 +81,11 @@ export default function Index() {
       // 5. Revalida o vínculo com a clínica (API Java) DEPOIS de navegar, e sem
       //    await: se a API estiver fora do ar, o fetch pode demorar até falhar,
       //    e o login não pode ficar preso esperando por ela.
-      if (perfil.tipo === "tutor" && perfil.cpf) {
-        void garantirCadastroNaClinica(perfil.cpf);
-      }
+      //
+      //    Vale para os dois perfis: o tutor envia o CPF, e o veterinário é
+      //    reconhecido pelo e-mail do token, que a API casa com o cadastro da
+      //    clínica para gravar o firebase_uid nele.
+      void garantirCadastroNaClinica(perfil.tipo === "tutor" ? perfil.cpf : undefined);
 
     } catch (error: any) {
       let mensagemErro = "Ocorreu um erro ao tentar entrar.";
