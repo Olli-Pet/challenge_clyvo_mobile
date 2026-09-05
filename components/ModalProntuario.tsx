@@ -10,8 +10,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// O pet vem do banco da clinica; a tipagem e a mesma do servico.
+// O pet e o historico vem do banco da clinica.
 import { Pet } from "@/services/api/petsApi";
+import { useConsultasDoPet } from "@/hooks/useConsultas";
+import { dataDoEvento, DESCRICAO_STATUS } from "@/services/api/consultasApi";
 
 interface ModalProntuarioProps {
   visible: boolean;
@@ -20,6 +22,9 @@ interface ModalProntuarioProps {
 }
 
 export default function ModalProntuario({ visible, onClose, pet }: ModalProntuarioProps) {
+  // Laudos reais: as consultas registradas para este pet.
+  const { data: consultas = [] } = useConsultasDoPet(pet?.id ?? null);
+
   
   const obterImagemPet = (termo: string) => {
     const busca = termo?.toLowerCase() || "";
@@ -77,26 +82,43 @@ export default function ModalProntuario({ visible, onClose, pet }: ModalProntuar
 
             <View style={styles.cardInfo}>
               <Text style={styles.sectionLabel}>FICHA DE ANAMNESE CLÍNICA</Text>
-              <Text style={styles.infoText}><Text style={styles.bold}>• Queixa Principal:</Text> Check-up preventivo de rotina e acompanhamento de bem-estar.</Text>
-              <Text style={styles.infoText}><Text style={styles.bold}>• Alimentação:</Text> Ração super premium seca combinada com sachê úmido (2x ao dia).</Text>
-              <Text style={styles.infoText}><Text style={styles.bold}>• Vacinação & Vermífugo:</Text> Carteira de vacinação V10, Antirrábica e vermífugos 100% em dia.</Text>
+              <Text style={styles.infoText}><Text style={styles.bold}>• Espécie:</Text> {pet?.especie === "GATO" ? "Gato" : "Cão"} · {pet?.raca}</Text>
+              <Text style={styles.infoText}><Text style={styles.bold}>• Idade:</Text> {pet?.idade} ano(s) — nascido em {pet?.nascimento}</Text>
+              <Text style={styles.infoText}><Text style={styles.bold}>• Características:</Text> Porte {pet?.porte?.toLowerCase()}, pelagem {pet?.cor?.toLowerCase()}, sexo {pet?.sexo?.toLowerCase()}</Text>
+              <Text style={styles.infoText}><Text style={styles.bold}>• Responsável:</Text> {pet?.nomeResponsavel}</Text>
               <Text style={styles.infoText}><Text style={styles.bold}>• Histórico Comportamental:</Text> {pet?.info || "Sem observações comportamentais relevantes relatadas pelo tutor."}</Text>
             </View>
 
             <View style={styles.cardInfo}>
               <Text style={styles.sectionLabel}>LAUDO</Text>
-              
-              <View style={styles.laudoItem}>
-                <Text style={styles.laudoTitle}>Cirurgia de castração - 05/07/2020</Text>
-                <Text style={styles.laudoDetail}>• Local: Clínica WE Vets</Text>
-                <Text style={styles.laudoDetail}>• Médico: André Rosa</Text>
-              </View>
 
-              <View style={[styles.laudoItem, { borderBottomWidth: 0, paddingBottom: 0, marginBottom: 0 }]}>
-                <Text style={styles.laudoTitle}>Cirurgia de amputação - 20/05/2020</Text>
-                <Text style={styles.laudoDetail}>• Local: Clínica WE Vets</Text>
-                <Text style={styles.laudoDetail}>• Médico: André Rosa</Text>
-              </View>
+              {consultas.length === 0 ? (
+                <Text style={styles.laudoDetail}>
+                  Nenhum atendimento registrado para {pet?.nome} até o momento.
+                </Text>
+              ) : (
+                consultas.map((consulta, indice) => (
+                  <View
+                    key={consulta.id}
+                    style={[
+                      styles.laudoItem,
+                      indice === consultas.length - 1 && {
+                        borderBottomWidth: 0,
+                        paddingBottom: 0,
+                        marginBottom: 0,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.laudoTitle}>
+                      {consulta.motivo} - {dataDoEvento(consulta.dataHora)}
+                    </Text>
+                    <Text style={styles.laudoDetail}>• Médico: {consulta.nomeVeterinario}</Text>
+                    <Text style={styles.laudoDetail}>
+                      • {consulta.observacoes || DESCRICAO_STATUS[consulta.status]}
+                    </Text>
+                  </View>
+                ))
+              )}
             </View>
 
           </ScrollView>

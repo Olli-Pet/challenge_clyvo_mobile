@@ -4,7 +4,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 import { useMeusPets } from "@/hooks/usePets";
+import { useMinhasConsultas } from "@/hooks/useConsultas";
 import { Pet } from "@/services/api/petsApi";
+import {
+  Consulta,
+  dataDoEvento,
+  DESCRICAO_STATUS,
+  situacaoDoCartao,
+} from "@/services/api/consultasApi";
 
 import Header from "@/components/Header";
 import PetCircle from "@/components/PetCircle";
@@ -31,16 +38,17 @@ export default function Home() {
   // se refaz sozinha, sem recarregar a tela.
   const { data: meusPets = [], isPending: carregando, isError: clinicaIndisponivel } = useMeusPets();
 
-  const abrirDescricaoEvento = (title: string, date: string, description: string) => {
-    if (meusPets.length === 0) return;
-    
+  // Eventos reais: as consultas dos pets deste tutor, vindas da clínica.
+  const { data: consultas = [] } = useMinhasConsultas();
+
+  const abrirDescricaoEvento = (consulta: Consulta) => {
     setEventoParaExibir({
-      title,
-      petName: meusPets[0].nome, 
-      date,
-      doctor: "André Rosa",
-      clinic: "WE Vets",
-      description
+      title: consulta.motivo,
+      petName: consulta.nomePet,
+      date: dataDoEvento(consulta.dataHora),
+      doctor: consulta.nomeVeterinario,
+      clinic: "Olli Pet",
+      description: consulta.observacoes || DESCRICAO_STATUS[consulta.status],
     });
     setModalDescricaoVisible(true);
   };
@@ -68,8 +76,6 @@ export default function Home() {
       </View>
     );
   }
-
-  const nomePetPrincipal = meusPets.length > 0 ? meusPets[0].nome : "Pet";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -153,39 +159,30 @@ export default function Home() {
           </TouchableOpacity>
         </View>
 
-        {meusPets.length > 0 ? (
-          <View>
-            <CardEventos 
-              title="Cirurgia de castração"
-              petName={nomePetPrincipal}
-              date="05/07/2020"
-              doctor="André Rosa"
-              clinic="WE Vets"
-              status="finalizada"
-              onPressDescricao={() => abrirDescricaoEvento(
-                "Cirurgia de castração",
-                "05/07/2020",
-                "Procedimento cirúrgico eletivo realizado sem intercorrências. O paciente permaneceu estável sob anestesia inalatória. Recomendado repouso absoluto por 10 dias e uso de colar elisabetano."
-              )}
-            />
-
-            <CardEventos 
-              title="Cirurgia de amputação"
-              petName={nomePetPrincipal}
-              date="20/05/2020"
-              doctor="André Rosa"
-              clinic="WE Vets"
-              status="finalizada"
-              onPressDescricao={() => abrirDescricaoEvento(
-                "Cirurgia de amputação",
-                "20/05/2020",
-                "Amputação cirúrgica do membro posterior esquerdo devido a trauma severo prévio. Suturas limpas. Prescrito protocolo analgésico e antibioticoterapia estrita para o pós-operatório imediato."
-              )}
-            />
-          </View>
-        ) : (
+        {meusPets.length === 0 ? (
           <View style={styles.noEventsContainer}>
             <Text style={styles.noEventsText}>Adicione um pet para começar a registrar eventos.</Text>
+          </View>
+        ) : consultas.length === 0 ? (
+          <View style={styles.noEventsContainer}>
+            <Text style={styles.noEventsText}>
+              Nenhuma consulta registrada ainda. Os atendimentos aparecerão aqui.
+            </Text>
+          </View>
+        ) : (
+          <View>
+            {consultas.slice(0, 3).map((consulta) => (
+              <CardEventos
+                key={consulta.id}
+                title={consulta.motivo}
+                petName={consulta.nomePet}
+                date={dataDoEvento(consulta.dataHora)}
+                doctor={consulta.nomeVeterinario}
+                clinic="Olli Pet"
+                status={situacaoDoCartao(consulta.status)}
+                onPressDescricao={() => abrirDescricaoEvento(consulta)}
+              />
+            ))}
           </View>
         )}
 

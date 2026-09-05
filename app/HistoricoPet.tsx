@@ -4,7 +4,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 import { useMeusPets } from "@/hooks/usePets";
+import { useConsultasDoPet } from "@/hooks/useConsultas";
 import { Pet } from "@/services/api/petsApi";
+import {
+  Consulta,
+  dataDoEvento,
+  DESCRICAO_STATUS,
+  situacaoDoCartao,
+} from "@/services/api/consultasApi";
 
 import Header from "@/components/Header";
 import CardEventos from "@/components/CardEventos";
@@ -35,17 +42,19 @@ export default function HistoricoPet() {
   const [modalDescricaoVisible, setModalDescricaoVisible] = useState(false);
   const [eventoParaExibir, setEventoParaExibir] = useState<EventoSelecionado | null>(null);
 
+  // Histórico real do pet selecionado: as consultas registradas na clínica.
+  const { data: consultas = [], isPending: carregandoConsultas } = useConsultasDoPet(
+    petSelecionado?.id ?? null
+  );
 
-  const abrirDescricaoEvento = (title: string, date: string, description: string) => {
-    if (!petSelecionado) return;
-    
+  const abrirDescricaoEvento = (consulta: Consulta) => {
     setEventoParaExibir({
-      title,
-      petName: petSelecionado.nome,
-      date,
-      doctor: "André Rosa",
-      clinic: "WE Vets",
-      description
+      title: consulta.motivo,
+      petName: consulta.nomePet,
+      date: dataDoEvento(consulta.dataHora),
+      doctor: consulta.nomeVeterinario,
+      clinic: "Olli Pet",
+      description: consulta.observacoes || DESCRICAO_STATUS[consulta.status],
     });
     setModalDescricaoVisible(true);
   };
@@ -100,38 +109,31 @@ export default function HistoricoPet() {
           </View>
         )}
 
-        {petSelecionado ? (
-          <View>
-            <CardEventos 
-              title="Cirurgia de castração"
-              petName={petSelecionado.nome}
-              date="05/07/2020"
-              doctor="André Rosa"
-              clinic="WE Vets"
-              status="finalizada"
-              onPressDescricao={() => abrirDescricaoEvento(
-                "Cirurgia de castração",
-                "05/07/2020",
-                "Procedimento cirúrgico eletivo realizado sem intercorrências. O paciente permaneceu estável sob anestesia inalatória. Recomendado repouso absoluto por 10 dias e uso de colar elisabetano."
-              )}
-            />
-
-            <CardEventos 
-              title="Cirurgia de amputação"
-              petName={petSelecionado.nome}
-              date="20/05/2020"
-              doctor="André Rosa"
-              clinic="WE Vets"
-              status="finalizada"
-              onPressDescricao={() => abrirDescricaoEvento(
-                "Cirurgia de amputação",
-                "20/05/2020",
-                "Amputação cirúrgica do membro posterior esquerdo devido a trauma severo prévio. Suturas limpas. Prescrito protocolo analgésico e antibioticoterapia estrita para o pós-operatório imediato."
-              )}
-            />
-          </View>
+        {!petSelecionado ? (
+          meusPets.length > 0 && (
+            <Text style={styles.selectAlert}>Selecione um pet para ver os eventos</Text>
+          )
+        ) : carregandoConsultas ? (
+          <ActivityIndicator color="#FDCB5C" style={{ marginTop: 20 }} />
+        ) : consultas.length === 0 ? (
+          <Text style={styles.selectAlert}>
+            {petSelecionado.nome} ainda não tem consultas registradas.
+          </Text>
         ) : (
-          meusPets.length > 0 && <Text style={styles.selectAlert}>Selecione um pet para ver os eventos</Text>
+          <View>
+            {consultas.map((consulta) => (
+              <CardEventos
+                key={consulta.id}
+                title={consulta.motivo}
+                petName={consulta.nomePet}
+                date={dataDoEvento(consulta.dataHora)}
+                doctor={consulta.nomeVeterinario}
+                clinic="Olli Pet"
+                status={situacaoDoCartao(consulta.status)}
+                onPressDescricao={() => abrirDescricaoEvento(consulta)}
+              />
+            ))}
+          </View>
         )}
       </ScrollView>
 
