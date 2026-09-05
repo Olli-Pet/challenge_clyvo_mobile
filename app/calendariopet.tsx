@@ -23,10 +23,21 @@ interface EventoPet {
   criadoPor: "tutor" | "vet";
 }
 
+/** Converte a data para a chave aaaa-mm-dd usada para agrupar os eventos. */
+const formatarDataChave = (data: Date) => {
+  const year = data.getFullYear();
+  const month = String(data.getMonth() + 1).padStart(2, "0");
+  const day = String(data.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export default function CalendarioPet() {
   const [dataAtual, setDataAtual] = useState(new Date());
   const [eventos, setEventos] = useState<EventoPet[]>([]);
-  const [diaSelecionado, setDiaSelecionado] = useState<string>("");
+  // Hoje já é o dia inicial: definir isso num efeito causaria um render extra.
+  const [diaSelecionado, setDiaSelecionado] = useState<string>(() =>
+    formatarDataChave(new Date())
+  );
   
   const [modalVisivel, setModalVisivel] = useState(false);
   const [tituloEvento, setTituloEvento] = useState("");
@@ -34,26 +45,18 @@ export default function CalendarioPet() {
   const [tipoCriador, setTipoCriador] = useState<"tutor" | "vet">("tutor");
 
   useEffect(() => {
+    // A leitura é assíncrona, então o setState acontece fora do render.
+    const carregarEventos = async () => {
+      try {
+        const salvos = await AsyncStorage.getItem("@olli_calendario_eventos");
+        if (salvos) setEventos(JSON.parse(salvos));
+      } catch (e) {
+        console.error("Erro ao carregar agenda", e);
+      }
+    };
+
     carregarEventos();
-    const hoje = new Date();
-    setDiaSelecionado(formatarDataChave(hoje));
   }, []);
-
-  const carregarEventos = async () => {
-    try {
-      const salvos = await AsyncStorage.getItem("@olli_calendario_eventos");
-      if (salvos) setEventos(JSON.parse(salvos));
-    } catch (e) {
-      console.error("Erro ao carregar agenda", e);
-    }
-  };
-
-  const formatarDataChave = (data: Date) => {
-    const year = data.getFullYear();
-    const month = String(data.getMonth() + 1).padStart(2, "0");
-    const day = String(data.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
 
   const gerarDiasDoMes = () => {
     const ano = dataAtual.getFullYear();

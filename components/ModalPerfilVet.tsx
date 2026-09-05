@@ -44,17 +44,19 @@ export default function ModalPerfilVet({ visible, onClose }: ModalPerfilVetProps
   };
 
   useEffect(() => {
-    if (visible) {
-      obterSessao().then((dados) => {
-        if (dados) {
-          setVet(dados);
-          setNome(dados.nome || "");
-          setCrmv(dados.crmv || "");
-          setEmail(dados.email || "");
-        }
-      });
+    if (!visible) return;
+
+    // Todos os setState ficam dentro do then: assíncronos, eles rodam fora do
+    // render e não disparam a cascata de renderizações que o React alerta.
+    obterSessao().then((dados) => {
+      if (dados) {
+        setVet(dados);
+        setNome(dados.nome || "");
+        setCrmv(dados.crmv || "");
+        setEmail(dados.email || "");
+      }
       setEditando(false);
-    }
+    });
   }, [visible]);
 
   const salvar = async () => {

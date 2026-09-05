@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Modal, View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Image, TextInput, ActivityIndicator,
@@ -30,18 +30,13 @@ export default function ModalProntuarioVetCompleto({
   visible, onClose, pet,
 }: ModalProntuarioVetCompletoProps) {
   const [novaEvolucao, setNovaEvolucao] = useState("");
-  const [historicoAtual, setHistoricoAtual] = useState("");
+  // Derivado do pet: o histórico vem sempre da consulta, então não precisa de
+  // estado próprio nem de efeito para sincronizar.
+  const historicoAtual = pet?.info || "Sem registros clínicos anteriores.";
 
   // A mutação invalida o cache de pets, então a evolução salva aparece
   // na lista de pacientes e no histórico sem recarregar a tela.
   const { mutateAsync: salvarPet, isPending: salvando } = useAtualizarPet();
-
-  useEffect(() => {
-    if (pet) {
-      setHistoricoAtual(pet.info || "Sem registros clínicos anteriores.");
-      setNovaEvolucao("");
-    }
-  }, [pet, visible]);
 
   const salvar = async () => {
     if (!pet || !novaEvolucao.trim()) {
@@ -62,6 +57,7 @@ ${atual.info || ""}`.trim();
 
       await salvarPet({ id: pet.id, dados: { ...atual, info: novoHistorico } });
 
+      setNovaEvolucao("");
       avisar("Sucesso", "Prontuário atualizado!");
       onClose();
     } catch (error) {
