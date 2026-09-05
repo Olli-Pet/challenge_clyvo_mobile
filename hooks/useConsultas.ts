@@ -33,14 +33,6 @@ export const chavesConsultas = {
   veterinarios: ["veterinarios", "disponiveis"] as const,
 };
 
-/** Invalida tudo que exibe consulta, em qualquer perfil. */
-function usarInvalidacao() {
-  const clienteQuery = useQueryClient();
-  return () => {
-    clienteQuery.invalidateQueries({ queryKey: chavesConsultas.todas });
-  };
-}
-
 /* ---------------------------------------------------------------- leitura */
 
 /** Consultas de todos os pets do tutor. */
@@ -91,42 +83,46 @@ export function usePendentes() {
 
 /** Solicita uma consulta (perfil responsável). */
 export function useSolicitarConsulta() {
-  const invalidar = usarInvalidacao();
+  const clienteQuery = useQueryClient();
 
   return useMutation({
     mutationFn: (dados: NovaConsulta) => solicitarConsulta(dados),
-    onSuccess: invalidar,
+    onSuccess: () =>
+      clienteQuery.invalidateQueries({ queryKey: chavesConsultas.todas }),
   });
 }
 
 /** Cancela a consulta, informando o motivo. */
 export function useCancelarConsulta() {
-  const invalidar = usarInvalidacao();
+  const clienteQuery = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, motivo }: { id: number; motivo: string }) =>
       cancelarConsulta(id, motivo),
-    onSuccess: invalidar,
+    onSuccess: () =>
+      clienteQuery.invalidateQueries({ queryKey: chavesConsultas.todas }),
   });
 }
 
 /** Confirma a consulta solicitada (perfil veterinário). */
 export function useConfirmarConsulta() {
-  const invalidar = usarInvalidacao();
+  const clienteQuery = useQueryClient();
 
   return useMutation({
     mutationFn: (id: number) => confirmarConsulta(id),
-    onSuccess: invalidar,
+    onSuccess: () =>
+      clienteQuery.invalidateQueries({ queryKey: chavesConsultas.todas }),
   });
 }
 
 /** Inicia o atendimento (perfil veterinário). */
 export function useIniciarConsulta() {
-  const invalidar = usarInvalidacao();
+  const clienteQuery = useQueryClient();
 
   return useMutation({
     mutationFn: (id: number) => iniciarConsulta(id),
-    onSuccess: invalidar,
+    onSuccess: () =>
+      clienteQuery.invalidateQueries({ queryKey: chavesConsultas.todas }),
   });
 }
 
@@ -147,11 +143,12 @@ export function useConcluirConsulta() {
 
 /** Registra que o paciente não compareceu (perfil veterinário). */
 export function useRegistrarFalta() {
-  const invalidar = usarInvalidacao();
+  const clienteQuery = useQueryClient();
 
   return useMutation({
     mutationFn: (id: number) => registrarFalta(id),
-    onSuccess: invalidar,
+    onSuccess: () =>
+      clienteQuery.invalidateQueries({ queryKey: chavesConsultas.todas }),
   });
 }
 
