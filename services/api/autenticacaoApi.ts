@@ -1,4 +1,5 @@
 import { chamarApi, ErroApi } from "./clienteApi";
+import { avisar } from "../avisar";
 
 /**
  * Vinculo entre a conta do Firebase e o cadastro da clinica.
@@ -66,12 +67,24 @@ export async function garantirCadastroNaClinica(cpf?: string): Promise<boolean> 
     return true;
   } catch (erro) {
     if (erro instanceof ErroApi) {
-      // 409 = CPF ja usado por OUTRO cadastro. E um conflito real de dados,
-      // diferente de "ja registrado", que a API trata como sucesso.
-      if (erro.status === 409) {
-        console.warn("CPF ja vinculado a outro cadastro na clinica:", erro.message);
+      // 400 e 409 sao problemas com os DADOS enviados, nao indisponibilidade:
+      // CPF fora do formato, ou ja usado por outro cadastro. Como o vinculo
+      // roda em segundo plano, o usuario ficaria logado sem saber que a parte
+      // clinica do app nao vai funcionar — por isso estes dois avisam na tela.
+      if (erro.status === 400 || erro.status === 409) {
+        console.warn(`Vinculo com a clinica recusado (${erro.status}):`, erro.message);
+        avisar(
+          "Cadastro incompleto na clínica",
+          `${erro.message}
+
+Você está logado, mas as consultas e a triagem só ` +
+            "funcionarão depois que isso for corrigido."
+        );
         return false;
       }
+
+      // Os demais casos sao a API fora do ar: nao ha o que o usuario faca, e o
+      // vinculo e refeito sozinho no proximo login.
       console.warn(`Clinica indisponivel (${erro.status}): ${erro.message}`);
       return false;
     }

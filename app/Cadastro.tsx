@@ -28,6 +28,18 @@ import OndaBottom from "../components/OndaBottom";
 
 const PRIMARY_YELLOW = "#FDCB5C";
 
+/** Aplica a máscara 000.000.000-00 enquanto o tutor digita. */
+function formatarCpf(texto: string): string {
+  const numeros = texto.replace(/\D/g, "").slice(0, 11);
+
+  if (numeros.length <= 3) return numeros;
+  if (numeros.length <= 6) return `${numeros.slice(0, 3)}.${numeros.slice(3)}`;
+  if (numeros.length <= 9) {
+    return `${numeros.slice(0, 3)}.${numeros.slice(3, 6)}.${numeros.slice(6)}`;
+  }
+  return `${numeros.slice(0, 3)}.${numeros.slice(3, 6)}.${numeros.slice(6, 9)}-${numeros.slice(9)}`;
+}
+
 export default function Cadastro() {
   const [nome, setNome] = useState("");
   const [cpf, setCpf] = useState("");
@@ -51,6 +63,13 @@ export default function Cadastro() {
 
     if (senha.length < 6) {
       avisar("Erro", "A senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    // A clínica exige 11 dígitos. Validar aqui evita criar a conta no Firebase
+    // e só descobrir o problema depois, com o usuário já logado.
+    if (apenasDigitos(cpf).length !== 11) {
+      avisar("Erro", "O CPF precisa ter 11 dígitos.");
       return;
     }
 
@@ -159,8 +178,9 @@ export default function Cadastro() {
               <TextInput 
                 style={styles.input} 
                 value={cpf} 
-                onChangeText={setCpf}
+                onChangeText={(texto) => setCpf(formatarCpf(texto))}
                 placeholder="000.000.000-00"
+                maxLength={14}
                 placeholderTextColor="#999"
                 keyboardType="numeric"
               />
