@@ -8,7 +8,7 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../services/firebaseConfig";
 import { useAutenticacao } from "@/contexts/AuthContext";
 import { avisar, avisarEEntao } from "../services/avisar";
-import { garantirCadastroNaClinica } from "../services/api/autenticacaoApi";
+import { garantirVinculoAntesDeNavegar } from "../services/api/autenticacaoApi";
 
 export default function CadastroVet() {
   const [nome, setNome] = useState("");
@@ -59,10 +59,10 @@ export default function CadastroVet() {
       //    marcador resolvido só pelo Firestore.
       await registrarSessao({ ...vetData, createdAt: new Date() });
 
-      // 5. Vincula a conta a clinica. Se o e-mail ja for de um veterinario
-      //    cadastrado, a API grava o firebase_uid nele e o app passa a ser
-      //    aceito nas rotas da clinica. Sem await: a API e um complemento.
-      void garantirCadastroNaClinica();
+      // 5. Vincula a conta à clínica ANTES de navegar. Se o e-mail já for de um
+      //    veterinário cadastrado, a API grava o firebase_uid nele e o app passa
+      //    a ser aceito nas rotas da clínica — sem isso a agenda daria 403.
+      await garantirVinculoAntesDeNavegar();
 
       avisarEEntao("Sucesso", "Doutor(a), seu perfil foi criado!", () =>
         router.replace("/homevet")

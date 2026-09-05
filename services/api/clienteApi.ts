@@ -68,7 +68,9 @@ function mensagemPadrao(status: number): string {
     case 401:
       return "Sua sessao expirou. Entre novamente.";
     case 403:
-      return "Voce nao tem permissao para esta acao.";
+      // Costuma ser conta ainda nao vinculada a clinica: para a API o usuario
+      // e um PRE_CADASTRO, que so pode chamar /auth/registrar.
+      return "Sua conta ainda nao esta liberada na clinica. Saia e entre novamente.";
     case 404:
       return "Nao encontramos o que voce procura.";
     case 409:

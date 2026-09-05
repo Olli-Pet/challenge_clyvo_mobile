@@ -17,7 +17,7 @@ import { router } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../services/firebaseConfig";
 import { carregarPerfil } from "../services/sessao";
-import { garantirCadastroNaClinica } from "../services/api/autenticacaoApi";
+import { garantirVinculoAntesDeNavegar } from "../services/api/autenticacaoApi";
 import { avisar } from "../services/avisar";
 import { useAutenticacao } from "@/contexts/AuthContext";
 
@@ -74,18 +74,20 @@ export default function Index() {
       //    protegidas para as demais telas.
       await registrarSessao(perfil);
 
-      // 4. Redireciona conforme o tipo. Usa replace para o botão "voltar"
-      //    não retornar à tela de login já autenticado.
-      router.replace(perfil.tipo === "vet" ? "/homevet" : "/Home");
-
-      // 5. Revalida o vínculo com a clínica (API Java) DEPOIS de navegar, e sem
-      //    await: se a API estiver fora do ar, o fetch pode demorar até falhar,
-      //    e o login não pode ficar preso esperando por ela.
+      // 4. Revalida o vínculo com a clínica ANTES de navegar: as telas internas
+      //    consultam a API assim que abrem, e sem o vínculo recebem 403.
+      //    A espera é limitada, para uma API fora do ar não travar o login.
       //
       //    Vale para os dois perfis: o tutor envia o CPF, e o veterinário é
       //    reconhecido pelo e-mail do token, que a API casa com o cadastro da
       //    clínica para gravar o firebase_uid nele.
-      void garantirCadastroNaClinica(perfil.tipo === "tutor" ? perfil.cpf : undefined);
+      await garantirVinculoAntesDeNavegar(
+        perfil.tipo === "tutor" ? perfil.cpf : undefined
+      );
+
+      // 5. Redireciona conforme o tipo. Usa replace para o botão "voltar"
+      //    não retornar à tela de login já autenticado.
+      router.replace(perfil.tipo === "vet" ? "/homevet" : "/Home");
 
     } catch (error: any) {
       let mensagemErro = "Ocorreu um erro ao tentar entrar.";

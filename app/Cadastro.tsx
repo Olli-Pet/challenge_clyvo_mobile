@@ -19,7 +19,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../services/firebaseConfig";
 import { useAutenticacao } from "@/contexts/AuthContext";
-import { apenasDigitos, garantirCadastroNaClinica } from "../services/api/autenticacaoApi";
+import { apenasDigitos, garantirVinculoAntesDeNavegar } from "../services/api/autenticacaoApi";
 
 import { avisar, avisarEEntao } from "../services/avisar";
 
@@ -103,11 +103,11 @@ export default function Cadastro() {
       //    marcador que só o Firestore resolve, e não sobrevive ao JSON.
       await registrarSessao({ ...tutorData, createdAt: new Date() });
 
-      // 5. Vincula a conta à clínica (API Java), que passa a conhecer este tutor
-      //    pelo firebase_uid. Sem await de propósito: se a API estiver fora do ar,
-      //    o fetch demora até falhar e não pode segurar o cadastro, que já está
-      //    concluído no Firebase. O vínculo é idempotente e se refaz no login.
-      void garantirCadastroNaClinica(cpfNormalizado);
+      // 5. Vincula a conta à clínica ANTES de navegar: sem o vínculo o usuário
+      //    ainda é PRE_CADASTRO para a API, e a Home receberia 403 ao buscar
+      //    pets e consultas. A espera é limitada, então uma API fora do ar
+      //    atrasa alguns segundos mas não impede o cadastro.
+      await garantirVinculoAntesDeNavegar(cpfNormalizado);
 
       avisarEEntao("Sucesso! ✨", "Cadastro realizado com sucesso!", () =>
         router.replace("/Home")

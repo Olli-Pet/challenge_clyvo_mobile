@@ -49,6 +49,35 @@ export async function registrarContaNaClinica(dados: RegistroFirebase): Promise<
 }
 
 /**
+ * Tempo maximo de espera pelo vinculo antes de liberar a navegacao.
+ *
+ * O vinculo precisa terminar ANTES das telas internas, senao elas chamam a API
+ * como PRE_CADASTRO e recebem 403. Mas se a clinica estiver fora do ar a espera
+ * nao pode ser eterna: passado o limite, o app segue e refaz o vinculo depois.
+ */
+const LIMITE_DE_ESPERA_MS = 6000;
+
+/** Resolve com `false` se a promessa nao terminar dentro do limite. */
+function comLimiteDeTempo(promessa: Promise<boolean>): Promise<boolean> {
+  return Promise.race([
+    promessa,
+    new Promise<boolean>((resolve) =>
+      setTimeout(() => resolve(false), LIMITE_DE_ESPERA_MS)
+    ),
+  ]);
+}
+
+/**
+ * Garante o vinculo com a clinica antes de liberar as telas internas.
+ *
+ * Espera no maximo alguns segundos: o suficiente para o caso normal, sem travar
+ * o app quando a API nao responde.
+ */
+export function garantirVinculoAntesDeNavegar(cpf?: string): Promise<boolean> {
+  return comLimiteDeTempo(garantirCadastroNaClinica(cpf));
+}
+
+/**
  * Garante o vinculo com a clinica sem interromper o fluxo de login.
  *
  * Para o tutor, cria o cadastro a partir do CPF. Para o veterinario, o CPF nao
