@@ -46,6 +46,114 @@ export async function listarConsultasDoPet(petId: number): Promise<Consulta[]> {
   return Array.isArray(resposta) ? resposta : (resposta.content ?? []);
 }
 
+export type Veterinario = {
+  id: number;
+  nome: string;
+  email: string;
+  cpf: string;
+  crmv: string;
+  especialidade: string | null;
+};
+
+/** Veterinarios que atendem na clinica, para o tutor escolher. */
+export function listarVeterinariosDisponiveis(): Promise<Veterinario[]> {
+  return chamarApi<Veterinario[]>("/veterinarios/disponiveis");
+}
+
+export type NovaConsulta = {
+  petId: number;
+  veterinarioId: number;
+  /** ISO local, sem fuso: aaaa-mm-ddThh:mm:ss */
+  dataHora: string;
+  motivo: string;
+  /** Quando a consulta nasce de uma triagem, o relato vai junto. */
+  triagemId?: number | null;
+};
+
+/** Solicita uma consulta. Nasce como SOLICITADA, aguardando a clinica. */
+export function solicitarConsulta(dados: NovaConsulta): Promise<Consulta> {
+  return chamarApi<Consulta>("/consultas", { metodo: "POST", corpo: dados });
+}
+
+/** Cancela a consulta. Exige motivo e respeita a antecedencia minima. */
+export function cancelarConsulta(id: number, motivo: string): Promise<Consulta> {
+  return chamarApi<Consulta>(`/consultas/${id}/cancelar`, {
+    metodo: "PATCH",
+    corpo: { motivo },
+  });
+}
+
+/**
+ * Avanca a consulta no fluxo da clinica (perfil veterinario):
+ * SOLICITADA -> CONFIRMADA -> EM_ATENDIMENTO -> CONCLUIDA.
+ */
+export function confirmarConsulta(id: number): Promise<Consulta> {
+  return chamarApi<Consulta>(`/consultas/${id}/confirmar`, { metodo: "PATCH" });
+}
+
+export function iniciarConsulta(id: number): Promise<Consulta> {
+  return chamarApi<Consulta>(`/consultas/${id}/iniciar`, { metodo: "PATCH" });
+}
+
+export type EncerramentoConsulta = {
+  procedimento: string;
+  localAtendimento: string;
+  observacoes?: string;
+};
+
+/**
+ * Conclui o atendimento. Encerrar a consulta e o mesmo ato de registrar o
+ * prontuario, por isso procedimento e local sao obrigatorios: a API grava os
+ * dois na mesma transacao.
+ */
+export function concluirConsulta(
+  id: number,
+  dados: EncerramentoConsulta
+): Promise<Consulta> {
+  return chamarApi<Consulta>(`/consultas/${id}/concluir`, {
+    metodo: "PATCH",
+    corpo: dados,
+  });
+}
+
+/** Registra que o paciente nao compareceu. */
+export function registrarFalta(id: number): Promise<Consulta> {
+  return chamarApi<Consulta>(`/consultas/${id}/falta`, { metodo: "PATCH" });
+}
+
+/**
+ * Agenda do veterinario logado em UM dia (aaaa-mm-dd). Sem data, a API
+ * assume hoje.
+ */
+export function buscarAgendaDoDia(data?: string): Promise<Consulta[]> {
+  return chamarApi<Consulta[]>(`/agenda${data ? `?data=${data}` : ""}`);
+}
+
+/** Consultas aguardando confirmacao da clinica (a API devolve paginado). */
+export async function buscarPendentes(): Promise<Consulta[]> {
+  const pagina = await chamarApi<{ content: Consulta[] }>("/agenda/pendentes?size=50");
+  return pagina.content ?? [];
+}
+
+/**
+ * Painel da clinica: as solicitacoes pendentes mais os atendimentos do dia.
+ *
+ * A API separa as duas coisas porque /agenda mostra apenas um dia, e uma
+ * consulta marcada para a semana que vem nao apareceria ali. Juntar as duas
+ * evita que o veterinario perca uma solicitacao por ser de outra data.
+ */
+export async function buscarPainelDaClinica(data?: string): Promise<Consulta[]> {
+  const [pendentes, doDia] = await Promise.all([
+    buscarPendentes(),
+    buscarAgendaDoDia(data),
+  ]);
+
+  const porId = new Map<number, Consulta>();
+  [...pendentes, ...doDia].forEach((consulta) => porId.set(consulta.id, consulta));
+
+  return [...porId.values()].sort((a, b) => a.dataHora.localeCompare(b.dataHora));
+}
+
 /**
  * Como cada situação aparece no cartão de evento.
  * O CardEventos aceita "finalizada" | "agendada" | "cancelada".

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 import { usePetsDaClinica } from "@/hooks/usePets";
 import { Pet } from "@/services/api/petsApi";
@@ -63,6 +64,23 @@ export default function HomeVet() {
           <Text style={styles.bannerDesc}>Gerencie prontuários e adicione históricos de consultas.</Text>
         </View>
 
+        <TouchableOpacity
+          style={styles.cardAgenda}
+          activeOpacity={0.85}
+          onPress={() => router.push("/AgendaVet")}
+        >
+          <View style={styles.agendaIcone}>
+            <Ionicons name="calendar" size={26} color="#FFF" />
+          </View>
+          <View style={styles.agendaTexto}>
+            <Text style={styles.agendaTitulo}>Agenda da clínica</Text>
+            <Text style={styles.agendaSub}>
+              Confirme, inicie e conclua os atendimentos.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color="#2E6BB8" />
+        </TouchableOpacity>
+
         <View style={styles.sectionHeader}>
           <Ionicons name="git-pull-request-outline" size={20} color="#66A6FA" />
           <Text style={styles.sectionTitle}>Pacientes Cadastrados ({todosOsPets.length})</Text>
@@ -123,6 +141,29 @@ const styles = StyleSheet.create({
   bannerSub: { fontSize: 15, color: "#E0EEFF", marginTop: 2, fontWeight: "600" },
   bannerDesc: { fontSize: 13, color: "#D0E8FF", marginTop: 8 },
   perfilBtn: { padding: 4 },
+  cardAgenda: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EBF3FF",
+    borderWidth: 1.5,
+    borderColor: "#66A6FA",
+    borderRadius: 18,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    gap: 12,
+  },
+  agendaIcone: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#66A6FA",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  agendaTexto: { flex: 1 },
+  agendaTitulo: { fontSize: 16, fontWeight: "bold", color: "#222" },
+  agendaSub: { fontSize: 12, color: "#3B5F8A", marginTop: 2, lineHeight: 16 },
   sectionHeader: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, marginBottom: 15, gap: 8 },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#333" },
   listaContainer: { paddingHorizontal: 20 },

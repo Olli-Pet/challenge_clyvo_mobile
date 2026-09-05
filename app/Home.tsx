@@ -132,6 +132,23 @@ export default function Home() {
         )}
 
         <TouchableOpacity
+          style={styles.cardAgendar}
+          activeOpacity={0.85}
+          onPress={() => router.push("/Agendar")}
+        >
+          <View style={styles.agendarIcone}>
+            <Ionicons name="calendar" size={26} color="#FFF" />
+          </View>
+          <View style={styles.triagemTexto}>
+            <Text style={styles.triagemTitulo}>Agendar consulta</Text>
+            <Text style={styles.agendarSub}>
+              Escolha o veterinário, a data e acompanhe suas consultas.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color="#2E6BB8" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={styles.cardTriagem}
           activeOpacity={0.85}
           onPress={() => router.push("/Triagem")}
@@ -237,6 +254,27 @@ const styles = StyleSheet.create({
   triagemTexto: { flex: 1 },
   triagemTitulo: { fontSize: 16, fontWeight: "bold", color: "#222" },
   triagemSub: { fontSize: 12, color: "#7A6320", marginTop: 2, lineHeight: 16 },
+  cardAgendar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EBF3FF",
+    borderWidth: 1.5,
+    borderColor: "#66A6FA",
+    borderRadius: 18,
+    padding: 16,
+    marginHorizontal: 20,
+    marginTop: 20,
+    gap: 12,
+  },
+  agendarIcone: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#66A6FA",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  agendarSub: { fontSize: 12, color: "#3B5F8A", marginTop: 2, lineHeight: 16 },
   container: { flex: 1, backgroundColor: "#FFF" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FFF" },
   loadingText: { marginTop: 10, fontSize: 14, color: "#666" },
