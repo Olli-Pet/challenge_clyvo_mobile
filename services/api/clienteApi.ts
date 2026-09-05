@@ -1,14 +1,51 @@
+import Constants from "expo-constants";
+import { Platform } from "react-native";
+
 import { auth } from "../firebaseConfig";
 
+const PORTA_API = 8080;
+
 /**
- * Endereco da API Java (projeto challenge_clyvo).
+ * Endereco da API Java (projeto challenge_clyvo), resolvido por ambiente.
  *
- * ATENCAO ao trocar de ambiente — este e o unico ponto que precisa mudar:
- *   - Web / iOS simulator ....... http://localhost:8080
- *   - Emulador Android .......... http://10.0.2.2:8080   (localhost la e o proprio emulador)
- *   - Celular fisico (Expo Go) .. http://SEU_IP_NA_REDE:8080  (ex.: http://192.168.0.12:8080)
+ * A regra existe porque "localhost" significa coisas diferentes em cada lugar:
+ * no navegador e o proprio PC, no emulador Android e o emulador, e no celular
+ * com Expo Go e o proprio celular — que nunca alcancaria a API da maquina.
+ *
+ * Para apontar para uma API publicada (Render, Railway...), defina
+ * EXPO_PUBLIC_API_URL no arquivo .env; ela tem prioridade sobre tudo.
  */
-export const URL_BASE_API = "http://localhost:8080";
+function resolverUrlDaApi(): string {
+  // 1. Endereco explicito vence sempre (util para API publicada na nuvem).
+  const configurada = process.env.EXPO_PUBLIC_API_URL;
+  if (configurada) {
+    return configurada.replace(/\/$/, "");
+  }
+
+  // 2. No navegador, a API roda na mesma maquina.
+  if (Platform.OS === "web") {
+    return `http://localhost:${PORTA_API}`;
+  }
+
+  // 3. Em dispositivo/emulador, o Expo informa o host que serve o bundle —
+  //    que e justamente o IP do PC de desenvolvimento na rede local.
+  const hostDoBundle =
+    Constants.expoConfig?.hostUri ??
+    Constants.expoGoConfig?.debuggerHost ??
+    "";
+
+  const ipDoPc = hostDoBundle.split(":")[0];
+  if (ipDoPc) {
+    return `http://${ipDoPc}:${PORTA_API}`;
+  }
+
+  // 4. Ultimo recurso: no emulador Android, 10.0.2.2 aponta para o host.
+  return Platform.OS === "android"
+    ? `http://10.0.2.2:${PORTA_API}`
+    : `http://localhost:${PORTA_API}`;
+}
+
+export const URL_BASE_API = resolverUrlDaApi();
 
 /** Erro vindo da API, com o status HTTP preservado para a tela decidir o que mostrar. */
 export class ErroApi extends Error {
