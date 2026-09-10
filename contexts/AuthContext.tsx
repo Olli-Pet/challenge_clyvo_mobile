@@ -9,6 +9,7 @@ import {
   salvarSessao,
   UsuarioSessao,
 } from "@/services/sessao";
+import { garantirVinculoAntesDeNavegar } from "@/services/api/autenticacaoApi";
 
 /**
  * Estado de autenticação compartilhado por todo o app.
@@ -61,8 +62,20 @@ export function ProvedorAutenticacao({ children }: { children: React.ReactNode }
         if (!ativo) return;
 
         if (perfil) {
-          await salvarSessao(perfil);
-          setUsuario(perfil);
+          // A clínica é a autoridade sobre o perfil: o documento do Firestore
+          // grava "tutor" para quem se cadastrou pela tela de responsável,
+          // inclusive para a administração e para a equipe clínica.
+          const perfilNaClinica = await garantirVinculoAntesDeNavegar(
+            perfil.tipo === "tutor" ? perfil.cpf : undefined
+          );
+          if (!ativo) return;
+
+          const efetivo = perfilNaClinica
+            ? { ...perfil, tipo: perfilNaClinica }
+            : perfil;
+
+          await salvarSessao(efetivo);
+          setUsuario(efetivo);
         } else if (!sessaoLocal) {
           // Autenticado no Firebase, mas sem perfil: trata como deslogado
           // para não deixar o app num estado a meio caminho.

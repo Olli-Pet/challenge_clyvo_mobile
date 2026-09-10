@@ -77,17 +77,31 @@ export default function Index() {
       // 4. Revalida o vínculo com a clínica ANTES de navegar: as telas internas
       //    consultam a API assim que abrem, e sem o vínculo recebem 403.
       //    A espera é limitada, para uma API fora do ar não travar o login.
-      //
-      //    Vale para os dois perfis: o tutor envia o CPF, e o veterinário é
-      //    reconhecido pelo e-mail do token, que a API casa com o cadastro da
-      //    clínica para gravar o firebase_uid nele.
-      await garantirVinculoAntesDeNavegar(
+      const perfilNaClinica = await garantirVinculoAntesDeNavegar(
         perfil.tipo === "tutor" ? perfil.cpf : undefined
       );
 
-      // 5. Redireciona conforme o tipo. Usa replace para o botão "voltar"
+      // 5. A clínica é a autoridade sobre o perfil: o documento do Firestore é
+      //    escrito pelo próprio cadastro e diz "tutor" para todo mundo que usa
+      //    a tela de responsável — inclusive para a administração. Quando a API
+      //    responde, o tipo dela prevalece.
+      const perfilEfetivo = perfilNaClinica
+        ? { ...perfil, tipo: perfilNaClinica }
+        : perfil;
+
+      if (perfilNaClinica && perfilNaClinica !== perfil.tipo) {
+        await registrarSessao(perfilEfetivo);
+      }
+
+      // 6. Redireciona conforme o tipo. Usa replace para o botão "voltar"
       //    não retornar à tela de login já autenticado.
-      router.replace(perfil.tipo === "vet" ? "/homevet" : "/Home");
+      router.replace(
+        perfilEfetivo.tipo === "admin"
+          ? "/Administracao"
+          : perfilEfetivo.tipo === "vet"
+            ? "/homevet"
+            : "/Home"
+      );
 
     } catch (error: any) {
       let mensagemErro = "Ocorreu um erro ao tentar entrar.";

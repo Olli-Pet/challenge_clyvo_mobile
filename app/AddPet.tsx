@@ -49,7 +49,7 @@ export default function AdicionarPet() {
     }
     return require("./assets/images/dog.png"); 
   };
-
+  
   const formatarData = (text: string) => {
 
     const apenasNumeros = text.replace(/\D/g, "");

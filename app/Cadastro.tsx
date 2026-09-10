@@ -107,10 +107,23 @@ export default function Cadastro() {
       //    ainda é PRE_CADASTRO para a API, e a Home receberia 403 ao buscar
       //    pets e consultas. A espera é limitada, então uma API fora do ar
       //    atrasa alguns segundos mas não impede o cadastro.
-      await garantirVinculoAntesDeNavegar(cpfNormalizado);
+      const perfilNaClinica = await garantirVinculoAntesDeNavegar(cpfNormalizado);
+
+      // 6. Se o e-mail já pertence à equipe ou à administração, a API devolve
+      //    esse perfil e ele prevalece sobre o "tutor" gravado aqui.
+      if (perfilNaClinica && perfilNaClinica !== "tutor") {
+        await registrarSessao({ ...tutorData, createdAt: new Date(), tipo: perfilNaClinica });
+      }
+
+      const destino =
+        perfilNaClinica === "admin"
+          ? "/Administracao"
+          : perfilNaClinica === "vet"
+            ? "/homevet"
+            : "/Home";
 
       avisarEEntao("Sucesso! ✨", "Cadastro realizado com sucesso!", () =>
-        router.replace("/Home")
+        router.replace(destino)
       );
 
     } catch (error: any) {

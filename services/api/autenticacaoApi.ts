@@ -1,4 +1,5 @@
 import { chamarApi, ErroApi } from "./clienteApi";
+import { TipoUsuario } from "../sessao";
 import { avisar } from "../avisar";
 
 /**
@@ -22,10 +23,26 @@ export type RegistroFirebase = {
 export type ContaClinica = {
   token: string;
   tipo?: string;
+  /** RESPONSAVEL | VETERINARIO | ADMIN — a API e quem sabe o perfil real. */
   perfil?: string;
   nome?: string;
   expiraEm?: string;
 };
+
+/**
+ * Traduz o perfil da API para o tipo usado nas telas.
+ *
+ * A clinica e a autoridade sobre quem e quem: o documento do Firestore e
+ * gravado pelo proprio cadastro e nao pode ser a fonte da verdade para
+ * permissao — um tutor que se cadastrasse com um e-mail da equipe teria
+ * "tutor" gravado la, mas a API o reconhece pelo cadastro dela.
+ */
+export function tipoDoPerfilDaApi(perfil?: string): TipoUsuario | null {
+  if (perfil === "ADMIN") return "admin";
+  if (perfil === "VETERINARIO") return "vet";
+  if (perfil === "RESPONSAVEL") return "tutor";
+  return null;
+}
 
 /** Remove pontos e tracos: a API exige 11 digitos crus. */
 export function apenasDigitos(valor: string): string {
@@ -58,11 +75,11 @@ export async function registrarContaNaClinica(dados: RegistroFirebase): Promise<
 const LIMITE_DE_ESPERA_MS = 6000;
 
 /** Resolve com `false` se a promessa nao terminar dentro do limite. */
-function comLimiteDeTempo(promessa: Promise<boolean>): Promise<boolean> {
+function comLimiteDeTempo<T>(promessa: Promise<T | null>): Promise<T | null> {
   return Promise.race([
     promessa,
-    new Promise<boolean>((resolve) =>
-      setTimeout(() => resolve(false), LIMITE_DE_ESPERA_MS)
+    new Promise<T | null>((resolve) =>
+      setTimeout(() => resolve(null), LIMITE_DE_ESPERA_MS)
     ),
   ]);
 }
@@ -73,7 +90,9 @@ function comLimiteDeTempo(promessa: Promise<boolean>): Promise<boolean> {
  * Espera no maximo alguns segundos: o suficiente para o caso normal, sem travar
  * o app quando a API nao responde.
  */
-export function garantirVinculoAntesDeNavegar(cpf?: string): Promise<boolean> {
+export function garantirVinculoAntesDeNavegar(
+  cpf?: string
+): Promise<TipoUsuario | null> {
   return comLimiteDeTempo(garantirCadastroNaClinica(cpf));
 }
 
@@ -90,10 +109,12 @@ export function garantirVinculoAntesDeNavegar(cpf?: string): Promise<boolean> {
  *
  * @returns true se o vinculo com a clinica esta garantido.
  */
-export async function garantirCadastroNaClinica(cpf?: string): Promise<boolean> {
+export async function garantirCadastroNaClinica(
+  cpf?: string
+): Promise<TipoUsuario | null> {
   try {
-    await registrarContaNaClinica({ cpf });
-    return true;
+    const conta = await registrarContaNaClinica({ cpf });
+    return tipoDoPerfilDaApi(conta.perfil);
   } catch (erro) {
     if (erro instanceof ErroApi) {
       // 400 e 409 sao problemas com os DADOS enviados, nao indisponibilidade:
@@ -109,15 +130,15 @@ export async function garantirCadastroNaClinica(cpf?: string): Promise<boolean> 
 Você está logado, mas as consultas e a triagem só ` +
             "funcionarão depois que isso for corrigido."
         );
-        return false;
+        return null;
       }
 
       // Os demais casos sao a API fora do ar: nao ha o que o usuario faca, e o
       // vinculo e refeito sozinho no proximo login.
       console.warn(`Clinica indisponivel (${erro.status}): ${erro.message}`);
-      return false;
+      return null;
     }
     console.warn("Falha inesperada ao vincular a conta da clinica:", erro);
-    return false;
+    return null;
   }
 }
