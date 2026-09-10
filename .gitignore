@@ -41,3 +41,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Variaveis de ambiente locais (a URL da API vive aqui)
+.env

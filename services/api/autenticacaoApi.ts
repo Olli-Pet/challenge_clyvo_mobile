@@ -71,8 +71,13 @@ export async function registrarContaNaClinica(dados: RegistroFirebase): Promise<
  * O vinculo precisa terminar ANTES das telas internas, senao elas chamam a API
  * como PRE_CADASTRO e recebem 403. Mas se a clinica estiver fora do ar a espera
  * nao pode ser eterna: passado o limite, o app segue e refaz o vinculo depois.
+ *
+ * Sao 60 segundos porque hospedagens gratuitas hibernam o servico apos alguns
+ * minutos sem uso, e a primeira chamada acorda a maquina — o que leva perto de
+ * um minuto. Com um limite curto, todo primeiro login do dia falharia.
+ * Localmente a resposta vem em milissegundos, entao o valor nunca e atingido.
  */
-const LIMITE_DE_ESPERA_MS = 6000;
+const LIMITE_DE_ESPERA_MS = 60_000;
 
 /** Resolve com `false` se a promessa nao terminar dentro do limite. */
 function comLimiteDeTempo<T>(promessa: Promise<T | null>): Promise<T | null> {

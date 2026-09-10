@@ -30,6 +30,9 @@ export default function Index() {
   const [senha, setSenha] = useState("");
   const [tipoUsuario, setTipoUsuario] = useState<"tutor" | "vet">("tutor");
   const [loading, setLoading] = useState(false);
+  // Hospedagem gratuita hiberna: a primeira chamada do dia pode levar quase um
+  // minuto acordando o servidor, e sem aviso isso parece travamento.
+  const [demorando, setDemorando] = useState(false);
 
   // O contexto guarda a sessão; o guard em _layout.tsx cuida do redirecionamento
   // automático de quem já está autenticado.
@@ -77,9 +80,12 @@ export default function Index() {
       // 4. Revalida o vínculo com a clínica ANTES de navegar: as telas internas
       //    consultam a API assim que abrem, e sem o vínculo recebem 403.
       //    A espera é limitada, para uma API fora do ar não travar o login.
+      const avisoDeDemora = setTimeout(() => setDemorando(true), 4000);
       const perfilNaClinica = await garantirVinculoAntesDeNavegar(
         perfil.tipo === "tutor" ? perfil.cpf : undefined
       );
+      clearTimeout(avisoDeDemora);
+      setDemorando(false);
 
       // 5. A clínica é a autoridade sobre o perfil: o documento do Firestore é
       //    escrito pelo próprio cadastro e diz "tutor" para todo mundo que usa
@@ -206,6 +212,13 @@ export default function Index() {
             )}
           </TouchableOpacity>
 
+          {demorando && (
+            <Text style={styles.avisoDemora}>
+              Acordando o servidor da clínica... isso pode levar até um minuto no
+              primeiro acesso do dia.
+            </Text>
+          )}
+
           <TouchableOpacity onPress={() => router.push(tipoUsuario === "vet" ? "/cadastrovet" : "/Cadastro")}>
             <Text style={styles.link}>
               {tipoUsuario === "vet"
@@ -234,5 +247,12 @@ const styles = StyleSheet.create({
   input: { backgroundColor: "#FFF", borderRadius: 25, paddingHorizontal: 15, height: 45, borderWidth: 1.5, color: "#000" },
   button: { height: 45, borderRadius: 25, justifyContent: "center", alignItems: "center", marginTop: 10, elevation: 3 },
   buttonText: { fontWeight: "bold" },
-  link: { textAlign: "center", marginTop: 25, textDecorationLine: "underline", color: "#333" }
+  link: { textAlign: "center", marginTop: 25, textDecorationLine: "underline", color: "#333" },
+  avisoDemora: {
+    textAlign: "center",
+    marginTop: 16,
+    fontSize: 12,
+    color: "#8A6A10",
+    lineHeight: 17,
+  }
 });
