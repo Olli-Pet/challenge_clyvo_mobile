@@ -23,7 +23,6 @@ import { ErroApi } from "@/services/api/clienteApi";
 import { avisarEEntao, avisar } from "@/services/avisar";
 
 import Header from "@/components/Header";
-import BotaoIA from "@/components/BotaoIA";
 
 export default function AdicionarPet() {
   const [nome, setNome] = useState("");
@@ -226,7 +225,6 @@ export default function AdicionarPet() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <BotaoIA />
     </SafeAreaView>
   );
 }

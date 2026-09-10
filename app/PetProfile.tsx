@@ -12,7 +12,6 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 
 import Header from "@/components/Header";
-import BotaoIA from "@/components/BotaoIA";
 import ModalInsights from "@/components/ModalInsights"; 
 
 export default function PetProfile() {
@@ -131,7 +130,6 @@ export default function PetProfile() {
         onInsightsGerados={(novosInsights) => setInsights(novosInsights)}
       />
 
-      <BotaoIA />
     </SafeAreaView>
   );
 }
