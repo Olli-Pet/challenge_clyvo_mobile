@@ -33,14 +33,12 @@ import {
 
 const AMARELO = "#FDCB5C";
 
-/** Horários que a clínica atende (08:00 às 18:00, consultas de 30 min). */
 const HORARIOS = [
   "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
   "11:00", "11:30", "14:00", "14:30", "15:00", "15:30",
   "16:00", "16:30", "17:00", "17:30",
 ];
 
-/** Cor de cada status na lista de consultas. */
 const COR_STATUS: Record<string, string> = {
   SOLICITADA: "#E8833A",
   CONFIRMADA: "#4C8DD6",
@@ -50,7 +48,6 @@ const COR_STATUS: Record<string, string> = {
   NAO_COMPARECEU: "#D64545",
 };
 
-/** dd/mm/aaaa + hh:mm -> ISO local que a API espera. */
 function montarDataHora(dataBr: string, hora: string): string | null {
   const partes = dataBr.split("/");
   if (partes.length !== 3) return null;
@@ -62,7 +59,6 @@ function montarDataHora(dataBr: string, hora: string): string | null {
   const data = new Date(iso);
   if (Number.isNaN(data.getTime())) return null;
 
-  // Rejeita datas que só existem por overflow, como 31/02.
   if (data.getDate() !== Number(dia) || data.getMonth() + 1 !== Number(mes)) {
     return null;
   }
@@ -70,7 +66,6 @@ function montarDataHora(dataBr: string, hora: string): string | null {
   return iso;
 }
 
-/** Máscara dd/mm/aaaa enquanto o tutor digita. */
 function formatarData(texto: string): string {
   const numeros = texto.replace(/\D/g, "").slice(0, 8);
 
@@ -111,7 +106,6 @@ export default function Agendar() {
     try {
       await solicitar({ petId, veterinarioId, dataHora, motivo: motivo.trim() });
 
-      // Limpa o formulário: a consulta já aparece na lista abaixo.
       setData("");
       setHora("");
       setMotivo("");
@@ -149,7 +143,6 @@ export default function Agendar() {
     );
   };
 
-  /** Só faz sentido cancelar o que ainda não aconteceu. */
   const podeCancelar = (consulta: Consulta) =>
     consulta.status === "SOLICITADA" || consulta.status === "CONFIRMADA";
 

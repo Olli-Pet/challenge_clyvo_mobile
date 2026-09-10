@@ -23,7 +23,6 @@ interface EventoPet {
   criadoPor: "tutor" | "vet";
 }
 
-/** Converte a data para a chave aaaa-mm-dd usada para agrupar os eventos. */
 const formatarDataChave = (data: Date) => {
   const year = data.getFullYear();
   const month = String(data.getMonth() + 1).padStart(2, "0");
@@ -34,7 +33,7 @@ const formatarDataChave = (data: Date) => {
 export default function CalendarioPet() {
   const [dataAtual, setDataAtual] = useState(new Date());
   const [eventos, setEventos] = useState<EventoPet[]>([]);
-  // Hoje já é o dia inicial: definir isso num efeito causaria um render extra.
+
   const [diaSelecionado, setDiaSelecionado] = useState<string>(() =>
     formatarDataChave(new Date())
   );
@@ -45,7 +44,7 @@ export default function CalendarioPet() {
   const [tipoCriador, setTipoCriador] = useState<"tutor" | "vet">("tutor");
 
   useEffect(() => {
-    // A leitura é assíncrona, então o setState acontece fora do render.
+
     const carregarEventos = async () => {
       try {
         const salvos = await AsyncStorage.getItem("@olli_calendario_eventos");

@@ -2,11 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 
-/**
- * Chave da sessão local. Todas as telas do app leem daqui
- * (Home, AddPet, ModalPerfil, homevet, etc.), então ela é mantida
- * como a fonte única de verdade da sessão no dispositivo.
- */
+
 export const CHAVE_SESSAO = "@olli_user_logado";
 
 /** Perfis do app. "admin" e a administracao da clinica, que gere a equipe. */
@@ -22,23 +18,9 @@ export type UsuarioSessao = {
   [campo: string]: any;
 };
 
-/**
- * Coleção nova e unificada. Contas antigas vivem em "tutores" e são
- * migradas para cá no primeiro login (ver `carregarPerfil`).
- */
 const COLECAO_USUARIOS = "users";
 const COLECAO_TUTORES_LEGADO = "tutores";
 
-/**
- * Busca o perfil do usuário no Firestore.
- *
- * Procura primeiro na coleção nova (`users`). Se não achar, cai para a
- * coleção legada (`tutores`) — são as contas cadastradas antes da
- * unificação — e migra o documento para `users` já com `tipo: "tutor"`,
- * de modo que o próximo login use apenas o caminho novo.
- *
- * Retorna null quando não existe perfil em nenhuma das duas.
- */
 export async function carregarPerfil(uid: string): Promise<UsuarioSessao | null> {
   const refNova = doc(db, COLECAO_USUARIOS, uid);
   const snapNova = await getDoc(refNova);
@@ -48,7 +30,7 @@ export async function carregarPerfil(uid: string): Promise<UsuarioSessao | null>
     return {
       ...dados,
       uid,
-      // Documentos gravados antes do campo existir são tratados como tutor.
+
       tipo: (dados.tipo as TipoUsuario) ?? "tutor",
     };
   }

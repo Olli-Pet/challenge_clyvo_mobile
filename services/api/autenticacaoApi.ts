@@ -30,8 +30,6 @@ export type ContaClinica = {
 };
 
 /**
- * Traduz o perfil da API para o tipo usado nas telas.
- *
  * A clinica e a autoridade sobre quem e quem: o documento do Firestore e
  * gravado pelo proprio cadastro e nao pode ser a fonte da verdade para
  * permissao — um tutor que se cadastrasse com um e-mail da equipe teria

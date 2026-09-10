@@ -28,7 +28,6 @@ import OndaBottom from "../components/OndaBottom";
 
 const PRIMARY_YELLOW = "#FDCB5C";
 
-/** Aplica a máscara 000.000.000-00 enquanto o tutor digita. */
 function formatarCpf(texto: string): string {
   const numeros = texto.replace(/\D/g, "").slice(0, 11);
 
@@ -66,8 +65,6 @@ export default function Cadastro() {
       return;
     }
 
-    // A clínica exige 11 dígitos. Validar aqui evita criar a conta no Firebase
-    // e só descobrir o problema depois, com o usuário já logado.
     if (apenasDigitos(cpf).length !== 11) {
       avisar("Erro", "O CPF precisa ter 11 dígitos.");
       return;
@@ -77,15 +74,12 @@ export default function Cadastro() {
 
     try {
       const emailNormalizado = email.trim().toLowerCase();
-      // A API da clinica exige o CPF com 11 digitos crus, sem pontos nem tracos.
+
       const cpfNormalizado = apenasDigitos(cpf);
 
-      // 1. Cria a conta no Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, emailNormalizado, senha);
       const user = userCredential.user;
 
-      // 2. Prepara os dados. O campo 'tipo' é o que o login usa para saber
-      //    se a conta é de responsável ou de veterinário.
       const tutorData = {
         uid: user.uid,
         tipo: "tutor" as const,
@@ -95,22 +89,12 @@ export default function Cadastro() {
         createdAt: serverTimestamp()
       };
 
-      // 3. Salva na coleção unificada 'users', usando o UID gerado pelo Auth
       await setDoc(doc(db, "users", user.uid), tutorData);
 
-      // 4. Publica a sessão no contexto, que a persiste e já libera as rotas
-      //    protegidas. createdAt vira Date aqui porque serverTimestamp() é um
-      //    marcador que só o Firestore resolve, e não sobrevive ao JSON.
       await registrarSessao({ ...tutorData, createdAt: new Date() });
 
-      // 5. Vincula a conta à clínica ANTES de navegar: sem o vínculo o usuário
-      //    ainda é PRE_CADASTRO para a API, e a Home receberia 403 ao buscar
-      //    pets e consultas. A espera é limitada, então uma API fora do ar
-      //    atrasa alguns segundos mas não impede o cadastro.
       const perfilNaClinica = await garantirVinculoAntesDeNavegar(cpfNormalizado);
 
-      // 6. Se o e-mail já pertence à equipe ou à administração, a API devolve
-      //    esse perfil e ele prevalece sobre o "tutor" gravado aqui.
       if (perfilNaClinica && perfilNaClinica !== "tutor") {
         await registrarSessao({ ...tutorData, createdAt: new Date(), tipo: perfilNaClinica });
       }
@@ -137,8 +121,7 @@ export default function Cadastro() {
       } else if (error.code === "auth/weak-password") {
         mensagemErro = "A senha escolhida é muito fraca.";
       } else if (error.code === "permission-denied") {
-        // A conta foi criada no Authentication, mas o perfil não pôde ser
-        // gravado: as regras do Firestore estão negando a escrita.
+
         mensagemErro =
           "A conta foi criada, mas não conseguimos salvar seu perfil. " +
           "Publique as regras do Firestore (arquivo firestore.rules) e entre pelo login.";

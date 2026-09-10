@@ -38,7 +38,7 @@ const COR_STATUS: Record<string, string> = {
 };
 
 export default function AgendaVet() {
-  /** Consulta em processo de encerramento; abre o formulário do prontuário. */
+
   const [encerrando, setEncerrando] = useState<Consulta | null>(null);
   const [procedimento, setProcedimento] = useState("");
   const [local, setLocal] = useState("Clínica Olli Pet");
@@ -54,7 +54,6 @@ export default function AgendaVet() {
   const mensagemDeErro = (erro: unknown, padrao: string) =>
     erro instanceof ErroApi ? erro.message : padrao;
 
-  /** Executa uma transição de status e avisa em caso de recusa da API. */
   const mudarStatus = async (acao: () => Promise<unknown>, contexto: string) => {
     try {
       await acao();
@@ -80,8 +79,7 @@ export default function AgendaVet() {
     }
 
     try {
-      // Concluir grava o prontuário na mesma transação, por isso o
-      // procedimento e o local são obrigatórios.
+
       await concluirConsulta({
         id: encerrando.id,
         dados: {

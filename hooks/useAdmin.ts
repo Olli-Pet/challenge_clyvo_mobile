@@ -39,7 +39,7 @@ export function useCadastrarVeterinario() {
     mutationFn: (dados: NovoVeterinario) => cadastrarVeterinario(dados),
     onSuccess: () => {
       clienteQuery.invalidateQueries({ queryKey: chavesAdmin.equipe });
-      // A lista de quem atende também muda para os tutores.
+
       clienteQuery.invalidateQueries({ queryKey: ["veterinarios"] });
     },
   });

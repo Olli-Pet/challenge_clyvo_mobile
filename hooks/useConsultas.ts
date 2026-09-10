@@ -17,13 +17,6 @@ import {
   solicitarConsulta,
 } from "@/services/api/consultasApi";
 
-/**
- * Hooks das consultas — agendamento pelo tutor e atendimento pela clínica.
- *
- * Cada mutação invalida as consultas afetadas, então a agenda do veterinário e
- * o histórico do tutor se atualizam sozinhos assim que o status muda.
- */
-
 export const chavesConsultas = {
   todas: ["consultas"] as const,
   minhas: ["consultas", "minhas"] as const,
@@ -33,7 +26,6 @@ export const chavesConsultas = {
   veterinarios: ["veterinarios", "disponiveis"] as const,
 };
 
-/* ---------------------------------------------------------------- leitura */
 
 /** Consultas de todos os pets do tutor. */
 export function useMinhasConsultas() {
@@ -79,7 +71,6 @@ export function usePendentes() {
   });
 }
 
-/* ---------------------------------------------------------------- escrita */
 
 /** Solicita uma consulta (perfil responsável). */
 export function useSolicitarConsulta() {

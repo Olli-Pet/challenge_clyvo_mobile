@@ -10,36 +10,36 @@ import {
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
+/**
+ * Credenciais do Firebase, lidas do arquivo .env.
+ *
+ * O prefixo EXPO_PUBLIC_ e obrigatorio: sem ele o Expo nao expoe a variavel
+ * ao aplicativo. Os valores ficam fora do repositorio (.env esta no
+ * .gitignore); o .env.example mostra quais chaves preencher.
+ */
 const firebaseConfig = {
-  apiKey: "AIzaSyCDR0PFZapJjabx-su3Kzeb3-_zwgScGK0",
-  authDomain: "olli-pet-ca74e.firebaseapp.com",
-  projectId: "olli-pet-ca74e",
-  storageBucket: "olli-pet-ca74e.firebasestorage.app",
-  messagingSenderId: "1034599956819",
-  appId: "1:1034599956819:web:e76683d04f9338435421a6",
-  measurementId: "G-8M8MBC3BJ4"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-//Inicializa o Firebase (evita re-inicializar no hot reload do Expo)
+// Sem as credenciais o Firebase falha mais adiante com um erro obscuro; avisar
+// aqui aponta direto para a causa: o .env ausente ou incompleto.
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  console.error(
+    "Credenciais do Firebase ausentes. Copie o .env.example para .env, " +
+      "preencha as chaves e reinicie o Expo com --clear."
+  );
+}
+
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-/**
- * Persistência da sessão, escolhida por plataforma.
- *
- * `getReactNativePersistence` existe apenas no build React Native do Firebase.
- * Ele NÃO pode ser importado no topo do arquivo por dois motivos:
- *
- *  1. no bundle web esse símbolo não existe;
- *  2. importá-lo de "@firebase/auth" carrega uma SEGUNDA cópia do SDK, que
- *     registra o componente numa instância diferente da criada por
- *     "firebase/app" — daí o erro "Component auth has not been registered yet".
- *
- * O Metro resolve "firebase/auth" pela condição "react-native" (que expõe a
- * função); o Node e o bundle web resolvem para o build web (que não a expõe).
- * Por isso o require fica aqui dentro, com verificação em tempo de execução.
- */
 function persistenciaDaPlataforma(): Persistence {
-  // No navegador a sessão persiste em localStorage.
+
   if (Platform.OS === "web") {
     return browserLocalPersistence;
   }
@@ -48,8 +48,7 @@ function persistenciaDaPlataforma(): Persistence {
   const criarPersistenciaRN = moduloAuth.getReactNativePersistence;
 
   if (typeof criarPersistenciaRN !== "function") {
-    // Não deve acontecer no app (o Metro entrega o build RN), mas se acontecer
-    // é melhor perder a persistência do que impedir o login por completo.
+
     console.warn(
       "getReactNativePersistence indisponível; a sessão não sobreviverá ao fechar o app."
     );
@@ -59,10 +58,6 @@ function persistenciaDaPlataforma(): Persistence {
   return criarPersistenciaRN(AsyncStorage);
 }
 
-/**
- * `initializeAuth` só pode rodar uma vez por app — no hot reload do Expo ele
- * lança, e aí basta recuperar a instância já criada com `getAuth`.
- */
 let authInstance: Auth;
 try {
   authInstance = initializeAuth(app, { persistence: persistenciaDaPlataforma() });
@@ -70,6 +65,5 @@ try {
   authInstance = getAuth(app);
 }
 
-//Exporta os serviços que o app precisa
 export const auth = authInstance;
 export const db = getFirestore(app);

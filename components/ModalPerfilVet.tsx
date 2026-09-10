@@ -30,7 +30,6 @@ export default function ModalPerfilVet({ visible, onClose }: ModalPerfilVetProps
 
   const { sair } = useAutenticacao();
 
-  // Encerra a sessão; o guard em _layout.tsx devolve o usuário ao login.
   const sairDaConta = () => {
     confirmar(
       "Sair da conta",
@@ -46,8 +45,6 @@ export default function ModalPerfilVet({ visible, onClose }: ModalPerfilVetProps
   useEffect(() => {
     if (!visible) return;
 
-    // Todos os setState ficam dentro do then: assíncronos, eles rodam fora do
-    // render e não disparam a cascata de renderizações que o React alerta.
     obterSessao().then((dados) => {
       if (dados) {
         setVet(dados);
@@ -66,8 +63,7 @@ export default function ModalPerfilVet({ visible, onClose }: ModalPerfilVetProps
     }
 
     try {
-      // Grava no Firestore E na sessão local, mantendo os dois em sincronia:
-      // assim a alteração acompanha o vet em qualquer dispositivo.
+
       const atualizado = await atualizarPerfil({
         nome: nome.trim(),
         crmv: crmv.trim(),

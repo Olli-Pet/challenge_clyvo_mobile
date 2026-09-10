@@ -30,12 +30,9 @@ export default function ModalProntuarioVetCompleto({
   visible, onClose, pet,
 }: ModalProntuarioVetCompletoProps) {
   const [novaEvolucao, setNovaEvolucao] = useState("");
-  // Derivado do pet: o histórico vem sempre da consulta, então não precisa de
-  // estado próprio nem de efeito para sincronizar.
+
   const historicoAtual = pet?.info || "Sem registros clínicos anteriores.";
 
-  // A mutação invalida o cache de pets, então a evolução salva aparece
-  // na lista de pacientes e no histórico sem recarregar a tela.
   const { mutateAsync: salvarPet, isPending: salvando } = useAtualizarPet();
 
   const salvar = async () => {
@@ -47,8 +44,6 @@ export default function ModalProntuarioVetCompleto({
     try {
       const data = new Date().toLocaleDateString("pt-BR");
 
-      // Relê o pet antes de escrever, para não sobrescrever uma evolução
-      // registrada por outro atendimento enquanto esta tela estava aberta.
       const atual = await buscarPet(pet.id);
       const novoHistorico =
         `[${data} - Med Vet]: ${novaEvolucao.trim()}

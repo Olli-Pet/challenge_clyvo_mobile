@@ -35,7 +35,6 @@ import {
 
 const AMARELO = "#FDCB5C";
 
-/** Etapas do fluxo, na ordem em que o tutor as percorre. */
 type Etapa = "pet" | "queixa" | "perguntas" | "resultado" | "historico";
 
 export default function Triagem() {
@@ -46,10 +45,6 @@ export default function Triagem() {
   const [respostas, setRespostas] = useState<RespostaInformada[]>([]);
   const [resultado, setResultado] = useState<ResultadoTriagem | null>(null);
 
-  /**
-   * Quando preenchido, o envio refaz esta triagem (PUT) em vez de criar outra.
-   * É o caminho de "editar" do CRUD.
-   */
   const [idEmEdicao, setIdEmEdicao] = useState<number | null>(null);
 
   const { data: pets = [], isPending: carregandoPets } = useMeusPets();
@@ -84,11 +79,6 @@ export default function Triagem() {
     setEtapa("perguntas");
   };
 
-  /**
-   * Registra a resposta. Ao trocar a resposta de uma pergunta, as respostas das
-   * perguntas que dependiam da opção anterior são descartadas — senão o envio
-   * levaria respostas de perguntas que deixaram de ser exibidas.
-   */
   const responder = (perguntaId: number, opcaoId: number) => {
     setRespostas((atuais) => {
       const novas = [...atuais.filter((r) => r.perguntaId !== perguntaId), { perguntaId, opcaoId }];
@@ -125,7 +115,6 @@ export default function Triagem() {
       return;
     }
 
-    // Envia só as respostas das perguntas efetivamente exibidas.
     const idsVisiveis = new Set(perguntasVisiveis.map((p) => p.id));
     const dados = {
       petId: petEscolhido.id,
@@ -146,7 +135,6 @@ export default function Triagem() {
     }
   };
 
-  /** Recomeça o questionário de uma triagem já registrada, para reavaliá-la. */
   const editarTriagem = (triagem: ResultadoTriagem) => {
     const pet = pets.find((p) => p.id === triagem.petId);
 
@@ -161,8 +149,6 @@ export default function Triagem() {
     setIdEmEdicao(triagem.id);
     setRespostas([]);
 
-    // A queixa original nem sempre está na lista já carregada (ela depende do
-    // pet); nesse caso o tutor a escolhe de novo na etapa seguinte.
     if (queixa) {
       setQueixaEscolhida(queixa);
       setEtapa("perguntas");

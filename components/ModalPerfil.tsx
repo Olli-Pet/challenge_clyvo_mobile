@@ -14,8 +14,6 @@ export default function ModalPerfil({ visible, onClose }: ModalPerfilProps) {
   const [tutor, setTutor] = useState<{ nome?: string; email?: string } | null>(null);
   const { sair } = useAutenticacao();
 
-  // Encerra a sessão no Firebase e limpa os dados locais. O guard em
-  // _layout.tsx percebe a mudança e leva o usuário de volta ao login.
   const sairDaConta = () => {
     confirmar("Sair da conta", "Deseja encerrar a sessão?", async () => {
       onClose();

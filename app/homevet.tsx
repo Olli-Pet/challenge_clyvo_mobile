@@ -25,8 +25,6 @@ export default function HomeVet() {
   const { usuario } = useAutenticacao();
   const nomeVet = usuario?.nome || "Médico(a)";
 
-  // A API já devolve o nome do responsável de cada pet, então basta renomear
-  // o campo para o formato que os componentes desta tela esperam.
   const { data: pets = [], isPending: carregando } = usePetsDaClinica();
   const todosOsPets: PetComTutor[] = pets.map((pet) => ({
     ...pet,
@@ -37,7 +35,6 @@ export default function HomeVet() {
   const [idSelecionado, setIdSelecionado] = useState<number | null>(null);
   const [modalPerfilVisible, setModalPerfilVisible] = useState(false);
 
-  // Deriva da consulta para o prontuário refletir a última evolução salva.
   const petSelecionado = todosOsPets.find((pet) => pet.id === idSelecionado) ?? null;
 
   const abrirProntuario = (pet: PetComTutor) => {

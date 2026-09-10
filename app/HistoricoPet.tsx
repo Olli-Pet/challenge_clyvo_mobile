@@ -24,7 +24,6 @@ import {
 
 import Header from "@/components/Header";
 import CardEventos from "@/components/CardEventos";
-import BotaoIA from "@/components/BotaoIA";
 import ModalProntuario from "@/components/ModalProntuario";
 
 import ModalDescricaoEvento from "@/components/ModalDescricaoEvento";
@@ -41,8 +40,6 @@ interface EventoSelecionado {
 export default function HistoricoPet() {
   const { data: meusPets = [], isPending: loading } = useMeusPets();
 
-  // Guarda apenas o id: o pet em si vem sempre da consulta, então uma edição
-  // no prontuário aparece aqui assim que o cache é invalidado.
   const [idSelecionado, setIdSelecionado] = useState<number | null>(null);
   const petSelecionado: Pet | null =
     meusPets.find((pet) => pet.id === idSelecionado) ?? meusPets[0] ?? null;
@@ -51,7 +48,6 @@ export default function HistoricoPet() {
   const [modalDescricaoVisible, setModalDescricaoVisible] = useState(false);
   const [eventoParaExibir, setEventoParaExibir] = useState<EventoSelecionado | null>(null);
 
-  // Histórico real do pet selecionado: as consultas registradas na clínica.
   const { data: consultas = [], isPending: carregandoConsultas } = useConsultasDoPet(
     petSelecionado?.id ?? null
   );
@@ -154,7 +150,6 @@ export default function HistoricoPet() {
         >
           <Ionicons name="document-text-outline" size={24} color="black" />
         </TouchableOpacity>
-        <BotaoIA />
       </View>
 
       <ModalProntuario 

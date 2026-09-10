@@ -24,14 +24,6 @@ import { ehVeterinarioDaEquipe } from "../services/api/adminApi";
 
 const AZUL = "#66A6FA";
 
-/**
- * Primeiro acesso do veterinário.
- *
- * Não é um cadastro aberto: quem cria o veterinário é a administração da
- * clínica, pela API. Aqui o profissional apenas define a senha, e só consegue
- * se o e-mail já constar na equipe — senão qualquer pessoa que baixasse o
- * aplicativo poderia se declarar médica.
- */
 export default function PrimeiroAcessoVet() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -61,8 +53,6 @@ export default function PrimeiroAcessoVet() {
     try {
       const emailNormalizado = email.trim().toLowerCase();
 
-      // 1. Confere na clínica ANTES de criar qualquer conta: só quem a
-      //    administração cadastrou pode ter acesso de veterinário.
       let daEquipe: boolean;
       try {
         daEquipe = await ehVeterinarioDaEquipe(emailNormalizado);
@@ -84,12 +74,9 @@ export default function PrimeiroAcessoVet() {
         return;
       }
 
-      // 2. Cria a senha no Firebase, que é quem autentica o app.
       const credencial = await createUserWithEmailAndPassword(auth, emailNormalizado, senha);
       const usuario = credencial.user;
 
-      // 3. Registra o perfil. Nome e CRMV vêm do cadastro da clínica, não daqui:
-      //    o profissional não declara os próprios dados profissionais.
       const dadosVet = {
         uid: usuario.uid,
         tipo: "vet" as const,
@@ -100,8 +87,6 @@ export default function PrimeiroAcessoVet() {
       await setDoc(doc(db, "users", usuario.uid), dadosVet);
       await registrarSessao({ ...dadosVet, createdAt: new Date() });
 
-      // 4. Vincula à clínica antes de navegar: é o que grava o firebase_uid no
-      //    cadastro existente e faz a API aceitá-lo como VETERINARIO.
       await garantirVinculoAntesDeNavegar();
 
       avisarEEntao("Acesso criado!", "Bem-vindo(a) ao painel clínico.", () =>

@@ -32,11 +32,10 @@ export default function AdicionarPet() {
   const [cor, setCor] = useState("");
   const [porte, setPorte] = useState("");
   const [sexo, setSexo] = useState("");
-  // A API so aceita CAO ou GATO, e o campo e obrigatorio no cadastro.
+
   const [especie, setEspecie] = useState<Especie>("CAO");
   const [info, setInfo] = useState("");
-  // A mutação expõe o estado de envio (isPending) e, ao concluir, invalida a
-  // lista de pets — a Home já mostra o novo pet sem recarregar nada.
+
   const { mutateAsync: cadastrarPet, isPending: loading } = useCriarPet();
 
   const obterImagemPet = (termo: string) => {
@@ -71,8 +70,6 @@ export default function AdicionarPet() {
       return;
     }
 
-    // A data de nascimento agora é obrigatória: a clínica usa a idade do pet
-    // como modificador da triagem (filhote e idoso mudam a classificação).
     if (!paraDataIso(nascimento)) {
       Alert.alert("Ops!", "Informe a data de nascimento no formato dd/mm/aaaa.");
       return;

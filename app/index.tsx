@@ -25,17 +25,14 @@ import OndaTop from "../components/Onda";
 import OndaBottom from "../components/OndaBottom";
 
 export default function Index() {
-  // Inicializados vazios para input real do usuário
+
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [tipoUsuario, setTipoUsuario] = useState<"tutor" | "vet">("tutor");
   const [loading, setLoading] = useState(false);
-  // Hospedagem gratuita hiberna: a primeira chamada do dia pode levar quase um
-  // minuto acordando o servidor, e sem aviso isso parece travamento.
+
   const [demorando, setDemorando] = useState(false);
 
-  // O contexto guarda a sessão; o guard em _layout.tsx cuida do redirecionamento
-  // automático de quem já está autenticado.
   const { entrar: registrarSessao } = useAutenticacao();
 
   const corAtiva = tipoUsuario === "vet" ? "#66A6FA" : "#E7B84C";
@@ -51,12 +48,9 @@ export default function Index() {
     try {
       const emailNormalizado = email.trim().toLowerCase();
       
-      // 1. Autentica no Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, emailNormalizado, senha);
       const user = userCredential.user;
 
-      // 2. Busca o perfil. Cobre tanto a coleção nova ('users') quanto as
-      //    contas antigas em 'tutores', que são migradas e tratadas como tutor.
       const perfil = await carregarPerfil(user.uid);
 
       if (!perfil) {
@@ -64,7 +58,6 @@ export default function Index() {
         return;
       }
 
-      // Garante que o usuário está tentando entrar pelo perfil correto
       if (perfil.tipo !== tipoUsuario) {
         avisar(
           "Acesso Negado",
@@ -73,13 +66,8 @@ export default function Index() {
         return;
       }
 
-      // 3. Publica a sessão no contexto, que a persiste e libera as rotas
-      //    protegidas para as demais telas.
       await registrarSessao(perfil);
 
-      // 4. Revalida o vínculo com a clínica ANTES de navegar: as telas internas
-      //    consultam a API assim que abrem, e sem o vínculo recebem 403.
-      //    A espera é limitada, para uma API fora do ar não travar o login.
       const avisoDeDemora = setTimeout(() => setDemorando(true), 4000);
       const perfilNaClinica = await garantirVinculoAntesDeNavegar(
         perfil.tipo === "tutor" ? perfil.cpf : undefined
@@ -87,10 +75,6 @@ export default function Index() {
       clearTimeout(avisoDeDemora);
       setDemorando(false);
 
-      // 5. A clínica é a autoridade sobre o perfil: o documento do Firestore é
-      //    escrito pelo próprio cadastro e diz "tutor" para todo mundo que usa
-      //    a tela de responsável — inclusive para a administração. Quando a API
-      //    responde, o tipo dela prevalece.
       const perfilEfetivo = perfilNaClinica
         ? { ...perfil, tipo: perfilNaClinica }
         : perfil;
@@ -99,8 +83,6 @@ export default function Index() {
         await registrarSessao(perfilEfetivo);
       }
 
-      // 6. Redireciona conforme o tipo. Usa replace para o botão "voltar"
-      //    não retornar à tela de login já autenticado.
       router.replace(
         perfilEfetivo.tipo === "admin"
           ? "/Administracao"

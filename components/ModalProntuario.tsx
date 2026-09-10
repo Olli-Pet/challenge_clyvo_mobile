@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// O pet e o historico vem do banco da clinica.
 import { Pet } from "@/services/api/petsApi";
 import { useConsultasDoPet } from "@/hooks/useConsultas";
 import { dataDoEvento, DESCRICAO_STATUS } from "@/services/api/consultasApi";
@@ -22,7 +21,7 @@ interface ModalProntuarioProps {
 }
 
 export default function ModalProntuario({ visible, onClose, pet }: ModalProntuarioProps) {
-  // Laudos reais: as consultas registradas para este pet.
+
   const { data: consultas = [] } = useConsultasDoPet(pet?.id ?? null);
 
   

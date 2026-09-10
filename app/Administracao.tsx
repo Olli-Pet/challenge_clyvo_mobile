@@ -27,7 +27,6 @@ import { apenasDigitos } from "@/services/api/autenticacaoApi";
 
 const ROXO = "#7B5CD6";
 
-/** Máscara 000.000.000-00 enquanto a administração digita. */
 function formatarCpf(texto: string): string {
   const numeros = texto.replace(/\D/g, "").slice(0, 11);
 

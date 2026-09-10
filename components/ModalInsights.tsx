@@ -11,8 +11,7 @@ interface ModalInsightsProps {
 
 export default function ModalInsights({ visivel, onClose, nomePet, onInsightsGerados }: ModalInsightsProps) {
   const [carregandoIA, setCarregandoIA] = useState(false);
-  
-  // Opções selecionáveis internas do Modal
+
   const [statusAlimentacao, setStatusAlimentacao] = useState("Alimentação em dia");
   const [statusDisposicao, setStatusDisposicao] = useState("Disposição: normal");
   const [statusPelo, setStatusPelo] = useState("Pelo: saudável");

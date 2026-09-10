@@ -25,7 +25,6 @@ import {
 import Header from "@/components/Header";
 import PetCircle from "@/components/PetCircle";
 import CardEventos from "@/components/CardEventos";
-import BotaoIA from "@/components/BotaoIA";
 
 import ModalDescricaoEvento from "@/components/ModalDescricaoEvento";
 
@@ -42,12 +41,8 @@ export default function Home() {
   const [modalDescricaoVisible, setModalDescricaoVisible] = useState(false);
   const [eventoParaExibir, setEventoParaExibir] = useState<EventoSelecionado | null>(null);
 
-  // O TanStack Query cuida do carregamento, do cache e da atualização: ao
-  // cadastrar ou excluir um pet, a mutação invalida esta consulta e a lista
-  // se refaz sozinha, sem recarregar a tela.
   const { data: meusPets = [], isPending: carregando, isError: clinicaIndisponivel } = useMeusPets();
 
-  // Eventos reais: as consultas dos pets deste tutor, vindas da clínica.
   const { data: consultas = [] } = useMinhasConsultas();
 
   const abrirDescricaoEvento = (consulta: Consulta) => {
@@ -213,9 +208,7 @@ export default function Home() {
         )}
 
       </ScrollView>
-
-      <BotaoIA />
-
+      
       <ModalDescricaoEvento 
         visible={modalDescricaoVisible}
         onClose={() => setModalDescricaoVisible(false)}

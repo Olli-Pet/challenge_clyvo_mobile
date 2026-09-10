@@ -11,15 +11,6 @@ import {
 } from "@/services/sessao";
 import { garantirVinculoAntesDeNavegar } from "@/services/api/autenticacaoApi";
 
-/**
- * Estado de autenticação compartilhado por todo o app.
- *
- * Centraliza aqui o que antes cada tela resolvia por conta própria: quem está
- * logado, se a sessão já foi verificada e como sair. O guard de rotas
- * (app/_layout.tsx) e as telas consomem este contexto em vez de ler o
- * AsyncStorage diretamente.
- */
-
 type EstadoAutenticacao = {
   /** Perfil do usuário logado, ou null se não há sessão. */
   usuario: UsuarioSessao | null;
@@ -40,8 +31,6 @@ export function ProvedorAutenticacao({ children }: { children: React.ReactNode }
   useEffect(() => {
     let ativo = true;
 
-    // O Firebase restaura a sessão do AsyncStorage sozinho na abertura do app;
-    // aqui apenas reagimos ao resultado e recuperamos o perfil correspondente.
     const cancelarInscricao = onAuthStateChanged(auth, async (usuarioFirebase) => {
       if (!usuarioFirebase) {
         if (ativo) {
@@ -52,7 +41,6 @@ export function ProvedorAutenticacao({ children }: { children: React.ReactNode }
       }
 
       try {
-        // A sessão local responde primeiro, para a tela não esperar a rede.
         const sessaoLocal = await obterSessao();
         if (ativo && sessaoLocal) {
           setUsuario(sessaoLocal);
@@ -62,9 +50,7 @@ export function ProvedorAutenticacao({ children }: { children: React.ReactNode }
         if (!ativo) return;
 
         if (perfil) {
-          // A clínica é a autoridade sobre o perfil: o documento do Firestore
-          // grava "tutor" para quem se cadastrou pela tela de responsável,
-          // inclusive para a administração e para a equipe clínica.
+
           const perfilNaClinica = await garantirVinculoAntesDeNavegar(
             perfil.tipo === "tutor" ? perfil.cpf : undefined
           );
@@ -77,8 +63,7 @@ export function ProvedorAutenticacao({ children }: { children: React.ReactNode }
           await salvarSessao(efetivo);
           setUsuario(efetivo);
         } else if (!sessaoLocal) {
-          // Autenticado no Firebase, mas sem perfil: trata como deslogado
-          // para não deixar o app num estado a meio caminho.
+
           setUsuario(null);
         }
       } catch (erro) {
@@ -115,7 +100,6 @@ export function ProvedorAutenticacao({ children }: { children: React.ReactNode }
   );
 }
 
-/** Acessa o estado de autenticação. Só funciona dentro do ProvedorAutenticacao. */
 export function useAutenticacao(): EstadoAutenticacao {
   const contexto = useContext(ContextoAutenticacao);
 

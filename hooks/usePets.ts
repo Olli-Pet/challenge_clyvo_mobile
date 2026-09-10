@@ -10,15 +10,6 @@ import {
   removerPet,
 } from "@/services/api/petsApi";
 
-/**
- * Hooks de acesso aos pets.
- *
- * Toda a comunicação com a API passa por aqui: as telas não chamam os serviços
- * HTTP diretamente. O TanStack Query mantém o cache, e cada mutação invalida as
- * consultas afetadas — é isso que faz a interface se atualizar sozinha depois de
- * criar, editar ou excluir um pet, sem recarregar a tela na mão.
- */
-
 /** Chaves de cache. Centralizadas para não haver divergência entre telas. */
 export const chavesPets = {
   todos: ["pets"] as const,

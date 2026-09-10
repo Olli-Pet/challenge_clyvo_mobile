@@ -15,8 +15,6 @@ export default function ModalGerenciarPets({ visible, onClose }: ModalGerenciarP
   const [petEditando, setPetEditando] = useState<number | null>(null);
   const [novaInfo, setNovaInfo] = useState("");
 
-  // A lista vem do cache compartilhado: editar ou excluir aqui reflete
-  // imediatamente na Home e nas demais telas.
   const { data: pets = [], isPending: carregando } = useMeusPets();
   const { mutateAsync: salvarPet, isPending: salvando } = useAtualizarPet();
   const { mutateAsync: excluirPet } = useRemoverPet();
@@ -26,8 +24,7 @@ export default function ModalGerenciarPets({ visible, onClose }: ModalGerenciarP
 
   const salvarEdicao = async (pet: Pet) => {
     try {
-      // O PUT da API substitui o pet inteiro, então os demais campos são
-      // reenviados junto com a bio editada.
+
       await salvarPet({ id: pet.id, dados: { ...pet, info: novaInfo } });
       setPetEditando(null);
       avisar("Sucesso", "Informações do pet atualizadas!");
