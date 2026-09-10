@@ -193,7 +193,11 @@ export default function Index() {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.push(tipoUsuario === "vet" ? "/cadastrovet" : "/Cadastro")}>
-            <Text style={styles.link}>Não possui conta? Cadastre-se</Text>
+            <Text style={styles.link}>
+              {tipoUsuario === "vet"
+                ? "Primeiro acesso? Crie sua senha"
+                : "Não possui conta? Cadastre-se"}
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -1,5 +1,16 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -9,19 +20,34 @@ import { auth, db } from "../services/firebaseConfig";
 import { useAutenticacao } from "@/contexts/AuthContext";
 import { avisar, avisarEEntao } from "../services/avisar";
 import { garantirVinculoAntesDeNavegar } from "../services/api/autenticacaoApi";
+import { ehVeterinarioDaEquipe } from "../services/api/adminApi";
 
-export default function CadastroVet() {
-  const [nome, setNome] = useState("");
-  const [crmv, setCrmv] = useState("");
+const AZUL = "#66A6FA";
+
+/**
+ * Primeiro acesso do veterinário.
+ *
+ * Não é um cadastro aberto: quem cria o veterinário é a administração da
+ * clínica, pela API. Aqui o profissional apenas define a senha, e só consegue
+ * se o e-mail já constar na equipe — senão qualquer pessoa que baixasse o
+ * aplicativo poderia se declarar médica.
+ */
+export default function PrimeiroAcessoVet() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { entrar: registrarSessao } = useAutenticacao();
 
-  const handleCadastro = async () => {
-    if (!nome.trim() || !crmv.trim() || !email.trim() || !senha.trim()) {
-      avisar("Erro", "Preencha os dados médicos!");
+  const criarAcesso = async () => {
+    if (!email.trim() || !senha.trim()) {
+      avisar("Atenção", "Informe o e-mail cadastrado e defina uma senha.");
+      return;
+    }
+
+    if (senha !== confirmarSenha) {
+      avisar("Erro", "As senhas não conferem!");
       return;
     }
 
@@ -35,56 +61,70 @@ export default function CadastroVet() {
     try {
       const emailNormalizado = email.trim().toLowerCase();
 
-      // 1. Cria a conta no Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(auth, emailNormalizado, senha);
-      const user = userCredential.user;
+      // 1. Confere na clínica ANTES de criar qualquer conta: só quem a
+      //    administração cadastrou pode ter acesso de veterinário.
+      let daEquipe: boolean;
+      try {
+        daEquipe = await ehVeterinarioDaEquipe(emailNormalizado);
+      } catch (erro) {
+        console.error("Erro ao consultar a equipe:", erro);
+        avisar(
+          "Clínica indisponível",
+          "Não conseguimos confirmar seu cadastro agora. Tente novamente em instantes."
+        );
+        return;
+      }
 
-      // 2. Monta o perfil. O campo 'tipo' é o que o login usa para direcionar
-      //    o veterinário para a home clínica. A senha NÃO é gravada aqui:
-      //    quem cuida dela é o Firebase Auth.
-      const vetData = {
-        uid: user.uid,
+      if (!daEquipe) {
+        avisar(
+          "E-mail não encontrado",
+          "Este e-mail não consta na equipe clínica. Peça à administração para " +
+            "cadastrá-lo antes do primeiro acesso."
+        );
+        return;
+      }
+
+      // 2. Cria a senha no Firebase, que é quem autentica o app.
+      const credencial = await createUserWithEmailAndPassword(auth, emailNormalizado, senha);
+      const usuario = credencial.user;
+
+      // 3. Registra o perfil. Nome e CRMV vêm do cadastro da clínica, não daqui:
+      //    o profissional não declara os próprios dados profissionais.
+      const dadosVet = {
+        uid: usuario.uid,
         tipo: "vet" as const,
-        nome: nome.trim(),
-        crmv: crmv.trim(),
         email: emailNormalizado,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       };
 
-      // 3. Salva na coleção unificada 'users', usando o UID gerado pelo Auth
-      await setDoc(doc(db, "users", user.uid), vetData);
+      await setDoc(doc(db, "users", usuario.uid), dadosVet);
+      await registrarSessao({ ...dadosVet, createdAt: new Date() });
 
-      // 4. Publica a sessão no contexto, que a persiste e libera as rotas
-      //    protegidas. createdAt vira Date aqui porque serverTimestamp() é um
-      //    marcador resolvido só pelo Firestore.
-      await registrarSessao({ ...vetData, createdAt: new Date() });
-
-      // 5. Vincula a conta à clínica ANTES de navegar. Se o e-mail já for de um
-      //    veterinário cadastrado, a API grava o firebase_uid nele e o app passa
-      //    a ser aceito nas rotas da clínica — sem isso a agenda daria 403.
+      // 4. Vincula à clínica antes de navegar: é o que grava o firebase_uid no
+      //    cadastro existente e faz a API aceitá-lo como VETERINARIO.
       await garantirVinculoAntesDeNavegar();
 
-      avisarEEntao("Sucesso", "Doutor(a), seu perfil foi criado!", () =>
+      avisarEEntao("Acesso criado!", "Bem-vindo(a) ao painel clínico.", () =>
         router.replace("/homevet")
       );
-
     } catch (error: any) {
-      console.error("Erro no cadastro do veterinário:", error);
-      let mensagemErro = "Não foi possível realizar o cadastro.";
+      console.error("Erro no primeiro acesso:", error);
+      let mensagemErro = "Não foi possível criar seu acesso.";
 
       if (error.code === "auth/email-already-in-use") {
-        mensagemErro = "Este e-mail já está em uso por outra conta. Tente fazer login ou use outro e-mail.";
+        mensagemErro =
+          "Você já tem acesso criado com este e-mail. Volte e entre pela tela de login.";
       } else if (error.code === "auth/invalid-email") {
         mensagemErro = "Formato de e-mail inválido.";
       } else if (error.code === "auth/weak-password") {
         mensagemErro = "A senha escolhida é muito fraca.";
       } else if (error.code === "permission-denied") {
         mensagemErro =
-          "A conta foi criada, mas não conseguimos salvar seu perfil. " +
-          "Publique as regras do Firestore (arquivo firestore.rules) e entre pelo login.";
+          "O acesso foi criado, mas não conseguimos salvar seu perfil. " +
+          "Publique as regras do Firestore e entre pelo login.";
       }
 
-      avisar("Erro de Cadastro", mensagemErro);
+      avisar("Erro no primeiro acesso", mensagemErro);
     } finally {
       setLoading(false);
     }
@@ -98,51 +138,68 @@ export default function CadastroVet() {
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <TouchableOpacity style={styles.back} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#66A6FA" />
+            <Ionicons name="arrow-back" size={24} color={AZUL} />
             <Text style={styles.backText}>Voltar</Text>
           </TouchableOpacity>
 
-          <Ionicons name="medical" size={60} color="#66A6FA" style={{ alignSelf: "center" }} />
-          <Text style={styles.title}>Cadastro Médico Veterinário</Text>
+          <Ionicons name="medical" size={60} color={AZUL} style={{ alignSelf: "center" }} />
+          <Text style={styles.title}>Primeiro acesso</Text>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nome Completo</Text>
-            <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Dr(a). ..." />
+          <View style={styles.aviso}>
+            <Ionicons name="information-circle-outline" size={18} color="#2E6BB8" />
+            <Text style={styles.avisoTexto}>
+              Use o e-mail que a clínica cadastrou para você. O acesso de veterinário é
+              criado pela administração.
+            </Text>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>CRMV</Text>
-            <TextInput style={styles.input} value={crmv} onChangeText={setCrmv} placeholder="00000-UF" />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>E-mail Profissional</Text>
+            <Text style={styles.label}>E-mail cadastrado na clínica</Text>
             <TextInput
               style={styles.input}
               value={email}
               onChangeText={setEmail}
+              placeholder="nome@ollipet.com"
+              placeholderTextColor="#999"
               keyboardType="email-address"
               autoCapitalize="none"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Senha de Acesso</Text>
+            <Text style={styles.label}>Defina sua senha</Text>
             <TextInput
               style={styles.input}
               value={senha}
               onChangeText={setSenha}
               placeholder="Mínimo 6 caracteres"
+              placeholderTextColor="#999"
               secureTextEntry
             />
           </View>
 
-          <TouchableOpacity style={styles.button} onPress={handleCadastro} disabled={loading}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Confirme a senha</Text>
+            <TextInput
+              style={styles.input}
+              value={confirmarSenha}
+              onChangeText={setConfirmarSenha}
+              placeholder="Repita a senha"
+              placeholderTextColor="#999"
+              secureTextEntry
+            />
+          </View>
+
+          <TouchableOpacity style={styles.button} onPress={criarAcesso} disabled={loading}>
             {loading ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.buttonText}>Finalizar Cadastro</Text>
+              <Text style={styles.buttonText}>Criar acesso</Text>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.loginLink} onPress={() => router.replace("/")}>
+            <Text style={styles.loginLinkText}>Já tenho acesso</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -152,13 +209,37 @@ export default function CadastroVet() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
-  content: { padding: 30, justifyContent: "center", marginTop: 50 },
-  back: { flexDirection: "row", alignItems: "center", marginBottom: 30 },
-  backText: { color: "#66A6FA", marginLeft: 5, fontWeight: "bold" },
-  title: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginVertical: 20, color: "#333" },
-  inputGroup: { marginBottom: 15 },
-  label: { fontSize: 14, color: "#666", marginBottom: 5, marginTop: 50 },
-  input: { borderBottomWidth: 2, borderBottomColor: "#66A6FA", height: 40, fontSize: 16 },
-  button: { backgroundColor: "#66A6FA", height: 50, borderRadius: 25, justifyContent: "center", alignItems: "center", marginTop: 30 },
-  buttonText: { color: "#FFF", fontWeight: "bold", fontSize: 16 }
+  content: { padding: 30, paddingTop: 60, paddingBottom: 40 },
+  back: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
+  backText: { color: AZUL, marginLeft: 5, fontWeight: "bold" },
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginVertical: 16,
+    color: "#333",
+  },
+  aviso: {
+    flexDirection: "row",
+    gap: 8,
+    backgroundColor: "#EBF3FF",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
+  },
+  avisoTexto: { flex: 1, fontSize: 12, color: "#2E6BB8", lineHeight: 18 },
+  inputGroup: { marginBottom: 18 },
+  label: { fontSize: 14, color: "#666", marginBottom: 6 },
+  input: { borderBottomWidth: 2, borderBottomColor: AZUL, height: 42, fontSize: 16 },
+  button: {
+    backgroundColor: AZUL,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  buttonText: { color: "#FFF", fontWeight: "bold", fontSize: 16 },
+  loginLink: { marginTop: 24, alignItems: "center" },
+  loginLinkText: { fontSize: 14, color: "#666", textDecorationLine: "underline" },
 });

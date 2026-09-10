@@ -20,6 +20,13 @@ const clienteQuery = new QueryClient({
   },
 });
 
+/** Tela inicial de cada perfil. */
+function homeDoPerfil(tipo: string) {
+  if (tipo === "vet") return "/homevet" as const;
+  if (tipo === "admin") return "/Administracao" as const;
+  return "/Home" as const;
+}
+
 /** Telas acessíveis sem estar autenticado. */
 const ROTAS_PUBLICAS = ["index", "Cadastro", "cadastrovet"];
 
@@ -48,7 +55,7 @@ function ControleDeAcesso({ children }: { children: React.ReactNode }) {
     }
 
     if (usuario && emRotaPublica) {
-      router.replace(usuario.tipo === "vet" ? "/homevet" : "/Home");
+      router.replace(homeDoPerfil(usuario.tipo));
     }
   }, [usuario, carregando, segmentos, router]);
 

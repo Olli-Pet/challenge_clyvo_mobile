@@ -9,7 +9,8 @@ import { auth, db } from "./firebaseConfig";
  */
 export const CHAVE_SESSAO = "@olli_user_logado";
 
-export type TipoUsuario = "tutor" | "vet";
+/** Perfis do app. "admin" e a administracao da clinica, que gere a equipe. */
+export type TipoUsuario = "tutor" | "vet" | "admin";
 
 export type UsuarioSessao = {
   uid: string;
