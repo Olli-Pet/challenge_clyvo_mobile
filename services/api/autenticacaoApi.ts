@@ -117,24 +117,27 @@ export async function garantirCadastroNaClinica(
     return tipoDoPerfilDaApi(conta.perfil);
   } catch (erro) {
     if (erro instanceof ErroApi) {
-      // 400 e 409 sao problemas com os DADOS enviados, nao indisponibilidade:
-      // CPF fora do formato, ou ja usado por outro cadastro. Como o vinculo
-      // roda em segundo plano, o usuario ficaria logado sem saber que a parte
-      // clinica do app nao vai funcionar — por isso estes dois avisam na tela.
+      // 400 e 409 sao problemas com os DADOS enviados: CPF fora do formato,
+      // ou ja usado por outro cadastro. O usuario precisa agir, entao avisam.
       if (erro.status === 400 || erro.status === 409) {
         console.warn(`Vinculo com a clinica recusado (${erro.status}):`, erro.message);
         avisar(
           "Cadastro incompleto na clínica",
-          `${erro.message}
-
-Você está logado, mas as consultas e a triagem só ` +
+          `${erro.message}\n\nVocê está logado, mas as consultas e a triagem só ` +
             "funcionarão depois que isso for corrigido."
         );
         return null;
       }
 
-      // Os demais casos sao a API fora do ar: nao ha o que o usuario faca, e o
-      // vinculo e refeito sozinho no proximo login.
+      // 401 e 403 aqui significam que a clinica nao aceitou o token — nao que
+      // esteja fora do ar. Nao ha o que o usuario faca alem de entrar de novo,
+      // e avisar em toda tela seria ruido: fica so no log.
+      if (erro.status === 401 || erro.status === 403) {
+        console.warn(`Token recusado pela clinica (${erro.status}): ${erro.message}`);
+        return null;
+      }
+
+      // Os demais casos sao a API fora do ar: o vinculo se refaz no proximo login.
       console.warn(`Clinica indisponivel (${erro.status}): ${erro.message}`);
       return null;
     }

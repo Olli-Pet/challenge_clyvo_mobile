@@ -5,14 +5,14 @@ import {
   View,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
-  Image, 
-  ActivityIndicator
+  Image,
+  ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { createUserWithEmailAndPassword } from "firebase/auth";
