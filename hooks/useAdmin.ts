@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   cadastrarVeterinario,
   listarEquipe,
-  listarTutores,
   NovoVeterinario,
   removerVeterinario,
 } from "@/services/api/adminApi";
@@ -12,7 +11,6 @@ import {
 
 export const chavesAdmin = {
   equipe: ["admin", "equipe"] as const,
-  tutores: ["admin", "tutores"] as const,
 };
 
 /** Veterinários cadastrados na clínica. */
@@ -20,14 +18,6 @@ export function useEquipe() {
   return useQuery({
     queryKey: chavesAdmin.equipe,
     queryFn: listarEquipe,
-  });
-}
-
-/** Tutores cadastrados na clínica. */
-export function useTutores() {
-  return useQuery({
-    queryKey: chavesAdmin.tutores,
-    queryFn: listarTutores,
   });
 }
 

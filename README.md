@@ -2,7 +2,7 @@
 
 > Aplicativo mobile do desafio **Clyvo**, focado em medicina veterinária preventiva, gestão da rotina do pet e triagem clínica assistida.
 
-**Vídeo de apresentação:** _(inserir link do YouTube antes da entrega)_
+**Vídeo de apresentação:** _(link do YouTube)_
 
 ---
 
@@ -30,13 +30,16 @@ app/                    Telas e rotas (expo-router)
   _layout.tsx           Providers + guard de rotas protegidas
   index.tsx             Login
   Cadastro.tsx          Cadastro de tutor
-  cadastrovet.tsx       Cadastro de veterinário
+  cadastrovet.tsx       Primeiro acesso do veterinário
   Home.tsx              Home do tutor
   homevet.tsx           Painel clínico do veterinário
+  Administracao.tsx     Gestão da equipe (perfil ADMIN)
   AddPet.tsx            Cadastro de pet
   PetProfile.tsx        Perfil do pet
   HistoricoPet.tsx      Histórico e prontuário
   Triagem.tsx           Triagem clínica (fluxo + histórico)
+  Agendar.tsx           Agendamento de consulta (tutor)
+  AgendaVet.tsx         Agenda e atendimento (veterinário)
   calendariopet.tsx     Agenda de compromissos
   chatia.tsx            Assistente virtual
 
@@ -46,6 +49,8 @@ contexts/
 hooks/                  Lógica de dados isolada da UI (TanStack Query)
   usePets.ts            useQuery/useMutation dos pets
   useTriagem.ts         useQuery/useMutation da triagem
+  useConsultas.ts       Agendamento e fluxo de atendimento
+  useAdmin.ts           Gestão da equipe clínica
 services/
   firebaseConfig.ts     Inicialização do Firebase
   sessao.ts             Perfil e sessão do usuário
@@ -54,6 +59,8 @@ services/
     clienteApi.ts       Cliente HTTP (injeta o token, trata erros)
     petsApi.ts          Endpoints de pets
     triagemApi.ts       Endpoints de triagem
+    consultasApi.ts     Endpoints de consultas e veterinários
+    adminApi.ts         Endpoints da administração
     autenticacaoApi.ts  Vínculo da conta Firebase com a clínica
 ```
 
@@ -82,14 +89,14 @@ const token = await auth.currentUser.getIdToken();
 
 ### Funcionalidades com CRUD completo
 
-Ambas usam dados reais da API — nada mockado.
+Todas usam dados reais da API — nada mockado.
 
-| Operação | Pets | Triagem |
-|---|---|---|
-| **Create** | `POST /pets` — tela AddPet | `POST /triagem` — questionário |
-| **Read** | `GET /pets/meus`, `GET /pets` | `GET /triagem/minhas`, `/protocolos/{id}` |
-| **Update** | `PUT /pets/{id}` — editar bio, prontuário | `PUT /triagem/{id}` — refazer avaliação |
-| **Delete** | `DELETE /pets/{id}` — gerenciar pets | `DELETE /triagem/{id}` — histórico |
+| Operação | Pets | Triagem | Consultas |
+|---|---|---|---|
+| **Create** | `POST /pets` — tela AddPet | `POST /triagem` — questionário | `POST /consultas` — agendamento |
+| **Read** | `GET /pets/meus`, `GET /pets` | `GET /triagem/minhas`, `/protocolos/{id}` | `GET /consultas/minhas`, `/agenda` |
+| **Update** | `PUT /pets/{id}` — editar bio, prontuário | `PUT /triagem/{id}` — refazer avaliação | `PATCH /consultas/{id}/confirmar`, `/iniciar`, `/concluir` |
+| **Delete** | `DELETE /pets/{id}` — gerenciar pets | `DELETE /triagem/{id}` — histórico | `PATCH /consultas/{id}/cancelar` |
 
 Toda mutação invalida o cache do TanStack Query, então **a interface se atualiza sozinha** — sem recarregar a tela ou reiniciar o app.
 
@@ -101,7 +108,13 @@ Toda mutação invalida o cache do TanStack Query, então **a interface se atual
 - **Persistência de sessão** via AsyncStorage: o usuário não reautentica ao reabrir o app
 - **Proteção de rotas** no `_layout.tsx`: quem não está autenticado é enviado ao login, inclusive ao digitar a URL de uma tela interna
 - **Logout** disponível nos modais de perfil, com bloqueio imediato das telas protegidas
-- Dois perfis: **Responsável (tutor)** e **Médico Veterinário**, cada um com sua home
+- Três perfis, cada um com sua home: **Responsável**, **Médico Veterinário** e **Administração**
+- **O perfil vem da API, não do Firestore.** O documento do Firestore é escrito
+  pelo próprio cadastro e diria "tutor" para todo mundo; quem sabe quem é quem é
+  o cadastro da clínica
+- **Cadastro de veterinário não é público**: só a administração cadastra a equipe.
+  O profissional define a senha no primeiro acesso, e o app confere na API se
+  aquele e-mail pertence mesmo à equipe antes de criar a conta
 
 ---
 
@@ -119,46 +132,72 @@ Toda mutação invalida o cache do TanStack Query, então **a interface se atual
 
 O projeto exige **Java 21**. Se o seu `JAVA_HOME` apontar para outra versão, informe-o na execução:
 
+Repositório: https://github.com/GabyBonfim/java-ollipet
+
 ```bash
-cd challenge_clyvo_java-master
+git clone https://github.com/GabyBonfim/java-ollipet.git
+cd java-ollipet
 JAVA_HOME="/caminho/para/jdk-21" ./mvnw spring-boot:run
 ```
 
 A API sobe em `http://localhost:8080` (Swagger em `/swagger-ui.html`).
 
-> O banco é **H2 em memória**: ao reiniciar, os dados voltam ao estado inicial das migrations.
+> O banco roda em arquivo (`data/`), então os dados sobrevivem ao reinício. Para
+> começar do zero, apague essa pasta.
 
-### 2. Aplicativo
+**Ou use a API publicada**, sem subir nada: `https://java-ollipet.onrender.com`
+(hospedagem gratuita hiberna — a primeira chamada pode levar alguns minutos).
+
+### 2. Variáveis de ambiente
+
+Copie `.env.example` para `.env` e preencha:
+
+```bash
+cp .env.example .env
+```
+
+| Variável | Para quê |
+|---|---|
+| `EXPO_PUBLIC_API_URL` | Endereço da API. Deixe vazio para o app descobrir sozinho |
+| `EXPO_PUBLIC_FIREBASE_*` | Credenciais do projeto Firebase |
+
+Sem `EXPO_PUBLIC_API_URL`, o app resolve o endereço por conta própria:
+`localhost` no navegador, `10.0.2.2` no emulador Android e o IP do computador
+de desenvolvimento no celular — o mesmo que o Expo usa para servir o bundle.
+
+### 3. Aplicativo
 
 ```bash
 npm install
-npx expo start
+npx expo start --clear
 ```
 
-O endereço da API fica em [`services/api/clienteApi.ts`](services/api/clienteApi.ts) — ajuste conforme o ambiente:
+O `--clear` importa: variáveis de ambiente só entram no bundle na inicialização.
 
-| Ambiente | URL |
-|---|---|
-| Web / simulador iOS | `http://localhost:8080` |
-| Emulador Android | `http://10.0.2.2:8080` |
-| Celular físico (Expo Go) | `http://SEU_IP_NA_REDE:8080` |
+### 4. Firestore
 
-### 3. Firestore
-
-As regras de segurança estão em [`firestore.rules`](firestore.rules) e precisam estar publicadas no console do Firebase para o cadastro e o login funcionarem.
+As regras de segurança estão em [`firestore.rules`](firestore.rules) e precisam
+estar publicadas no console do Firebase para o cadastro e o login funcionarem.
 
 ### Contas de demonstração
 
-Criadas pela migration do Flyway. Senha de todas: `123456`.
+Existem no banco da API, criadas pela migration do Flyway. A senha `123456` vale
+para o **Swagger e a API**; no aplicativo, quem guarda a senha é o Firebase.
 
 | Perfil | E-mail |
 |---|---|
-| Tutora | `maria.silva@email.com` |
-| Tutor | `joao.pereira@email.com` |
+| Administração | `admin@ollipet.com` | senha: Admin@123
 | Veterinária | `camila.duarte@ollipet.com` |
 | Veterinário | `rafael.nunes@ollipet.com` |
 
-> Essas contas existem no banco da API. Para entrar pelo app, crie uma conta pela tela de cadastro — ela é vinculada à clínica automaticamente no primeiro acesso.
+**Para entrar pelo app:**
+
+- **Tutor** — crie uma conta pela tela de cadastro; ela é vinculada à clínica
+  automaticamente.
+- **Veterinário** — use "Primeiro acesso" com um dos e-mails acima e defina a
+  senha. Quem não está na equipe não passa dessa tela.
+- **Administração** — cadastre `admin@ollipet.com` pela tela de responsável. O
+  app consulta a API, reconhece o perfil e leva à tela de gestão da equipe.
 
 ---
 

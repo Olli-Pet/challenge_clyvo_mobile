@@ -8,14 +8,6 @@ import { Veterinario } from "./consultasApi";
  * que so a clinica possui. Assim ninguem se declara medico apenas baixando o app.
  */
 
-export type Tutor = {
-  id: number;
-  nome: string;
-  email: string;
-  cpf: string;
-  dataNascimento: string | null;
-};
-
 export type NovoVeterinario = {
   nome: string;
   email: string;
@@ -28,12 +20,6 @@ export type NovoVeterinario = {
 /** Equipe clinica completa (inclui inativos, para a administracao acompanhar). */
 export async function listarEquipe(): Promise<Veterinario[]> {
   const pagina = await chamarApi<{ content: Veterinario[] }>("/veterinarios?size=100");
-  return pagina.content ?? [];
-}
-
-/** Tutores cadastrados na clinica. */
-export async function listarTutores(): Promise<Tutor[]> {
-  const pagina = await chamarApi<{ content: Tutor[] }>("/responsaveis?size=100");
   return pagina.content ?? [];
 }
 
