@@ -8,7 +8,36 @@ import { chamarApi } from "./clienteApi";
  * estruturado, preservando o que o app ja mostrava sem alterar o backend.
  */
 
-export type Especie = "CAO" | "GATO";
+/**
+ * Especies atendidas pela clinica. Espelha o enum da API: enviar um valor que
+ * nao esteja aqui faz a requisicao ser recusada com 400.
+ */
+export type Especie =
+  | "CAO"
+  | "GATO"
+  | "AVE"
+  | "ROEDOR"
+  | "LAGOMORFO"
+  | "REPTIL"
+  | "EQUINO"
+  | "OUTRO";
+
+/** Como cada especie aparece na interface, na ordem em que e oferecida. */
+export const ESPECIES: { valor: Especie; rotulo: string }[] = [
+  { valor: "CAO", rotulo: "Cão" },
+  { valor: "GATO", rotulo: "Gato" },
+  { valor: "AVE", rotulo: "Ave" },
+  { valor: "ROEDOR", rotulo: "Roedor" },
+  { valor: "LAGOMORFO", rotulo: "Coelho" },
+  { valor: "REPTIL", rotulo: "Réptil" },
+  { valor: "EQUINO", rotulo: "Cavalo" },
+  { valor: "OUTRO", rotulo: "Outro" },
+];
+
+/** Rotulo de uma especie. Cai no proprio codigo se vier algo desconhecido. */
+export function rotuloDaEspecie(especie: Especie | string): string {
+  return ESPECIES.find((e) => e.valor === especie)?.rotulo ?? String(especie);
+}
 
 export type PetApi = {
   id: number;

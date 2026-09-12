@@ -18,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 import { useCriarPet } from "@/hooks/usePets";
-import { Especie, paraDataIso } from "@/services/api/petsApi";
+import { Especie, ESPECIES, paraDataIso } from "@/services/api/petsApi";
 import { ErroApi } from "@/services/api/clienteApi";
 import { avisarEEntao, avisar } from "@/services/avisar";
 
@@ -100,10 +100,6 @@ export default function AdicionarPet() {
     }
   };
 
-  const alternarEspecie = () => {
-    setEspecie((atual) => (atual === "CAO" ? "GATO" : "CAO"));
-  };
-
   const alternarSexo = () => {
     if (sexo === "Macho") setSexo("Fêmea");
     else if (sexo === "Fêmea") setSexo("Não informado");
@@ -151,10 +147,27 @@ export default function AdicionarPet() {
             <TextInput style={styles.input} value={nome} onChangeText={setNome} />
 
             <Text style={styles.label}>Espécie</Text>
-            <TouchableOpacity style={styles.selectInput} onPress={alternarEspecie}>
-              <Text>{especie === "CAO" ? "Cão" : "Gato"}</Text>
-              <Ionicons name="chevron-down" size={20} color="black" />
-            </TouchableOpacity>
+            <View style={styles.especies}>
+              {ESPECIES.map((item) => (
+                <TouchableOpacity
+                  key={item.valor}
+                  style={[
+                    styles.especieChip,
+                    especie === item.valor && styles.especieChipAtivo,
+                  ]}
+                  onPress={() => setEspecie(item.valor)}
+                >
+                  <Text
+                    style={[
+                      styles.especieTexto,
+                      especie === item.valor && styles.especieTextoAtivo,
+                    ]}
+                  >
+                    {item.rotulo}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
             <Text style={styles.label}>Raça</Text>
             <TextInput 
@@ -246,6 +259,18 @@ const styles = StyleSheet.create({
   textArea: { height: 100, textAlignVertical: "top", paddingTop: 10 },
   row: { flexDirection: "row", marginBottom: 5 },
   flex1: { flex: 1 },
+  especies: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 4 },
+  especieChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: "#E0E0E0",
+    backgroundColor: "#FFF",
+  },
+  especieChipAtivo: { backgroundColor: "#FFF6DF", borderColor: "#FDCB5C" },
+  especieTexto: { fontSize: 13, color: "#555" },
+  especieTextoAtivo: { color: "#8A6A10", fontWeight: "700" },
   selectInput: { height: 45, borderWidth: 1.5, borderColor: "#FDCB5C", borderRadius: 20, paddingHorizontal: 15, flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#FFF", elevation: 2 },
   addButton: { backgroundColor: "#FDCB5C", height: 45, width: 150, borderRadius: 22.5, alignSelf: "flex-end", justifyContent: "center", alignItems: "center", marginTop: 10, elevation: 3 },
   addButtonText: { fontWeight: "bold", fontSize: 16 }

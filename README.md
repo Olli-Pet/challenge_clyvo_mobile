@@ -2,7 +2,13 @@
 
 > Aplicativo mobile do desafio **Clyvo**, focado em medicina veterinária preventiva, gestão da rotina do pet e triagem clínica assistida.
 
-**Vídeo de apresentação:** _([disponível aqui](https://youtu.be/pbWaKn5euLs?is=j7YVBKej2STUbjgW))_
+**Vídeo de apresentação:** _([disponível no youtube](https://youtu.be/HUnnHWI9LkM?is=t82GYGfeoo5c6zyp))_
+
+**Vídeo de apresentação:** _([disponível no Google Drive](https://drive.google.com/drive/folders/1JKoLL68jtyRK_NjyG0xxe531YgfcYSK5))_
+
+**Repositório de Java:** _([repositório](https://github.com/GabyBonfim/java-ollipet.git))_
+
+**Repositório de Mobile (frontend):** _([repositório](https://github.com/FIAP-MOBILE/clyvo-challenge-ollipet.git))_
 
 ---
 

@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Pet } from "@/services/api/petsApi";
+import { Pet, rotuloDaEspecie } from "@/services/api/petsApi";
 import { useConsultasDoPet } from "@/hooks/useConsultas";
 import { dataDoEvento, DESCRICAO_STATUS } from "@/services/api/consultasApi";
 
@@ -81,7 +81,7 @@ export default function ModalProntuario({ visible, onClose, pet }: ModalProntuar
 
             <View style={styles.cardInfo}>
               <Text style={styles.sectionLabel}>FICHA DE ANAMNESE CLÍNICA</Text>
-              <Text style={styles.infoText}><Text style={styles.bold}>• Espécie:</Text> {pet?.especie === "GATO" ? "Gato" : "Cão"} · {pet?.raca}</Text>
+              <Text style={styles.infoText}><Text style={styles.bold}>• Espécie:</Text> {pet?.especie ? rotuloDaEspecie(pet.especie) : "—"} · {pet?.raca}</Text>
               <Text style={styles.infoText}><Text style={styles.bold}>• Idade:</Text> {pet?.idade} ano(s) — nascido em {pet?.nascimento}</Text>
               <Text style={styles.infoText}><Text style={styles.bold}>• Características:</Text> Porte {pet?.porte?.toLowerCase()}, pelagem {pet?.cor?.toLowerCase()}, sexo {pet?.sexo?.toLowerCase()}</Text>
               <Text style={styles.infoText}><Text style={styles.bold}>• Responsável:</Text> {pet?.nomeResponsavel}</Text>

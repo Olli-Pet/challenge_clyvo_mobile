@@ -24,7 +24,7 @@ import {
   useQueixas,
   useRefazerTriagem,
 } from "@/hooks/useTriagem";
-import { Pet } from "@/services/api/petsApi";
+import { Pet, rotuloDaEspecie } from "@/services/api/petsApi";
 import {
   perguntaVisivel,
   QueixaResumo,
@@ -228,7 +228,7 @@ export default function Triagem() {
                 <View style={estilos.cartaoTexto}>
                   <Text style={estilos.cartaoTitulo}>{pet.nome}</Text>
                   <Text style={estilos.cartaoSub}>
-                    {pet.raca} · {pet.especie === "CAO" ? "Cão" : "Gato"}
+                    {pet.raca} · {rotuloDaEspecie(pet.especie)}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={AMARELO} />
