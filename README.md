@@ -2,7 +2,7 @@
 
 > Aplicativo mobile do desafio **Clyvo**, focado em medicina veterinária preventiva, gestão da rotina do pet e triagem clínica assistida.
 
-**Vídeo de apresentação:** _(link do YouTube)_
+**Vídeo de apresentação:** _([disponível aqui](https://youtu.be/pbWaKn5euLs?is=j7YVBKej2STUbjgW))_
 
 ---
 
